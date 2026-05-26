@@ -296,16 +296,36 @@
 <!-- ==================== VIEW: CÉDULA ==================== -->
 <div id="view-cedula" class="view">
   <div class="main">
-    <div class="acceso-wrap">
+    <div class="acceso-wrap" style="max-width:600px">
       <button class="btn-back" onclick="irPortal()">← Volver al portal</button>
       <div class="acceso-card">
         <h2 id="ac-titulo">Evaluación</h2>
         <p class="sub" id="ac-sub"></p>
         <div class="form-group">
-          <label for="inp-cedula">Número de cédula</label>
+          <label for="inp-cedula">Número de cédula <span style="color:var(--rojo)">*</span></label>
           <input type="text" id="inp-cedula" class="form-control" placeholder="0000000000"
-                 maxlength="10" inputmode="numeric" onkeypress="if(event.key==='Enter')iniciarTest()">
+                 maxlength="10" inputmode="numeric" oninput="validarAcceso()">
           <div class="error-msg" id="cedula-err"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="form-group">
+            <label for="inp-pnombre">Primer nombre <span style="color:var(--rojo)">*</span></label>
+            <input type="text" id="inp-pnombre" class="form-control" placeholder="Ej: María">
+          </div>
+          <div class="form-group">
+            <label for="inp-snombre">Segundo nombre</label>
+            <input type="text" id="inp-snombre" class="form-control" placeholder="Ej: Isabel">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="form-group">
+            <label for="inp-papellido">Primer apellido <span style="color:var(--rojo)">*</span></label>
+            <input type="text" id="inp-papellido" class="form-control" placeholder="Ej: García">
+          </div>
+          <div class="form-group">
+            <label for="inp-sapellido">Segundo apellido</label>
+            <input type="text" id="inp-sapellido" class="form-control" placeholder="Ej: López">
+          </div>
         </div>
         <div class="instrucciones">
           <h4>Instrucciones</h4>
@@ -317,7 +337,8 @@
             <li>Una vez enviado, no podrá volver a rendir este test.</li>
           </ul>
         </div>
-        <button class="btn btn-primary btn-block" onclick="iniciarTest()">Iniciar evaluación →</button>
+        <div class="error-msg" id="acceso-err" style="margin-bottom:12px"></div>
+        <button class="btn btn-primary btn-block" id="btn-iniciar" onclick="iniciarTest()" disabled>Iniciar evaluación →</button>
       </div>
     </div>
   </div>
@@ -610,11 +631,25 @@ const TIEMPO_SEG  = 60 * 60;
 // ============================================================
 // ESTADO (localStorage)
 // ============================================================
+function defaultPreguntas() {
+  return {
+    E1: Array.from({length: N_PREGS}, (_, i) => ({
+      pregunta: `Pregunta de evaluación ${i+1}: ¿Cuál de las siguientes afirmaciones describe mejor la competencia económica en un mercado libre?`,
+      A: `Alternativa A — opción ${i+1}`,
+      B: `Alternativa B — opción ${i+1}`,
+      C: `Alternativa C — opción ${i+1}`,
+      D: `Alternativa D — opción ${i+1}`,
+      respuesta: ['A','B','C','D'][i % 4]
+    })),
+    E2: [], E3: [], E4: []
+  };
+}
 function cargar() {
+  const storedPregs = localStorage.getItem('ceg_pregs');
   return {
     participantes: JSON.parse(localStorage.getItem('ceg_part') || '[]'),
-    preguntas:     JSON.parse(localStorage.getItem('ceg_pregs') || '{"E1":[],"E2":[],"E3":[],"E4":[]}'),
-    tests_estado:  JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"pendiente","E2":"pendiente","E3":"pendiente","E4":"pendiente"}'),
+    preguntas:     storedPregs ? JSON.parse(storedPregs) : defaultPreguntas(),
+    tests_estado:  JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"pendiente","E3":"pendiente","E4":"pendiente"}'),
     resultados:    JSON.parse(localStorage.getItem('ceg_res') || '[]'),
     asistencia:    JSON.parse(localStorage.getItem('ceg_asist') || '{}'),
     proyectos:     JSON.parse(localStorage.getItem('ceg_proy') || '{}')
@@ -698,21 +733,43 @@ function accederTest(t) {
   ses.test = t;
   document.getElementById('ac-titulo').textContent = `Evaluación ${t}`;
   document.getElementById('ac-sub').textContent    = TEST_NOMBRE[t];
-  document.getElementById('inp-cedula').value = '';
+  ['inp-cedula','inp-pnombre','inp-snombre','inp-papellido','inp-sapellido'].forEach(id => {
+    document.getElementById(id).value = '';
+    document.getElementById(id).classList.remove('is-error');
+  });
   ocultarErr('cedula-err');
+  ocultarErr('acceso-err');
+  document.getElementById('btn-iniciar').disabled = true;
   mostrar('view-cedula');
   setTimeout(() => document.getElementById('inp-cedula').focus(), 80);
 }
 
 function iniciarTest() {
   const ced = document.getElementById('inp-cedula').value.trim();
+  const pn  = document.getElementById('inp-pnombre').value.trim();
+  const sn  = document.getElementById('inp-snombre').value.trim();
+  const pa  = document.getElementById('inp-papellido').value.trim();
+  const sa  = document.getElementById('inp-sapellido').value.trim();
+
   if (!/^\d{10}$/.test(ced)) { return mostrarErr('cedula-err', 'Ingrese un número de cédula válido (10 dígitos).'); }
-  if (ced === ADMIN_CED)      { return mostrarErr('cedula-err', 'Esta cédula no corresponde a un participante.'); }
-  const part = st.participantes.find(p => p.cedula === ced);
-  if (!part) { return mostrarErr('cedula-err', 'Cédula no encontrada. Consulte con el administrador.'); }
+  if (ced === ADMIN_CED)      { return mostrarErr('acceso-err', 'Esta cédula no corresponde a un participante.'); }
+  if (!pn)  { return mostrarErr('acceso-err', 'Ingrese su primer nombre.'); }
+  if (!pa)  { return mostrarErr('acceso-err', 'Ingrese su primer apellido.'); }
+
+  ocultarErr('cedula-err'); ocultarErr('acceso-err');
+  st = cargar();
+
+  let part = st.participantes.find(p => p.cedula === ced);
+  if (!part) {
+    const nombre = [pn, sn, pa, sa].filter(Boolean).join(' ');
+    part = { cedula: ced, nombre };
+    st.participantes.push(part);
+    guardar(st);
+  }
+
   const yaRindio = st.resultados.find(r => r.cedula === ced && r.test === ses.test);
-  if (yaRindio) { return mostrarErr('cedula-err', `Ya rindió esta evaluación. Su nota fue ${yaRindio.nota.toFixed(1)}/10.`); }
-  ocultarErr('cedula-err');
+  if (yaRindio) { return mostrarErr('acceso-err', `Ya rindió esta evaluación. Su nota fue ${yaRindio.nota.toFixed(1)}/10.`); }
+
   ses.cedula = ced; ses.nombre = part.nombre;
   ses.resps = new Array(N_PREGS).fill(null); ses.idx = 0; ses.segs = TIEMPO_SEG;
   renderTest();
@@ -720,7 +777,23 @@ function iniciarTest() {
   iniciarTimer();
 }
 function mostrarErr(id, txt) { const e = document.getElementById(id); e.textContent = txt; e.style.display = 'block'; }
-function ocultarErr(id) { document.getElementById(id).style.display = 'none'; }
+function ocultarErr(id) { const e = document.getElementById(id); if (e) e.style.display = 'none'; }
+
+function validarAcceso() {
+  const ced = document.getElementById('inp-cedula').value.trim();
+  const btn = document.getElementById('btn-iniciar');
+  const err = document.getElementById('cedula-err');
+  const inp = document.getElementById('inp-cedula');
+  if (ced.length === 0) {
+    err.style.display = 'none'; inp.classList.remove('is-error'); btn.disabled = true;
+  } else if (!/^\d+$/.test(ced)) {
+    err.textContent = 'Solo se permiten dígitos numéricos.'; err.style.display = 'block'; inp.classList.add('is-error'); btn.disabled = true;
+  } else if (ced.length < 10) {
+    err.textContent = `Faltan ${10 - ced.length} dígito(s) — debe tener exactamente 10.`; err.style.display = 'block'; inp.classList.add('is-error'); btn.disabled = true;
+  } else {
+    err.style.display = 'none'; inp.classList.remove('is-error'); btn.disabled = false;
+  }
+}
 
 // ============================================================
 // TEST
