@@ -1,0 +1,18 @@
+# Archivos de desarrollo interno
+.claude/
+
+# Datos sensibles (participantes y resultados — no subir a GitHub)
+data/resultados.xlsx
+data/participantes.xlsx
+
+# Archivos del programa (documentos internos, no necesarios en el repo)
+*.pdf
+*.docx
+
+# Archivos temporales de Excel (abiertos en Office)
+~$*
+
+# Sistema
+Thumbs.db
+.DS_Store
+desktop.ini

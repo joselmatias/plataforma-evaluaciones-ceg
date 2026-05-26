@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plataforma de Evaluaciones — SCE + CEG</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --azul: #003366;
+      --azul-hover: #002244;
+      --dorado: #C8A84B;
+      --dorado-hover: #B09040;
+      --verde: #1a7a3f;
+      --rojo: #c0392b;
+      --gris: #f5f5f5;
+      --gris-borde: #ddd;
+      --texto: #222;
+      --texto-suave: #555;
+      --blanco: #ffffff;
+      --sombra: 0 2px 8px rgba(0,0,0,0.12);
+      --radio: 8px;
+      --tr: 0.2s ease;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 16px; color: var(--texto); background: #eef2f7; min-height: 100vh; }
+
+    /* VIEWS */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* HEADER */
+    .header { background: var(--azul); color: var(--blanco); padding: 14px 24px; display: flex; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+    .header-info { flex: 1; }
+    .header-info h1 { font-size: 17px; font-weight: 700; line-height: 1.2; }
+    .header-info p { font-size: 13px; color: var(--dorado); margin-top: 3px; }
+
+    /* FOOTER */
+    .footer { background: var(--azul); padding: 10px 24px; display: flex; justify-content: space-between; align-items: center; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; }
+    .footer-txt { font-size: 12px; color: rgba(255,255,255,0.5); }
+    .btn-admin-footer { background: transparent; border: 1px solid rgba(200,168,75,0.4); color: rgba(200,168,75,0.7); padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: var(--tr); }
+    .btn-admin-footer:hover { border-color: var(--dorado); color: var(--dorado); }
+
+    /* MAIN */
+    .main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 80px; }
+
+    /* BUTTONS */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; min-height: 44px; border: none; border-radius: var(--radio); font-size: 15px; font-weight: 600; cursor: pointer; transition: var(--tr); font-family: inherit; }
+    .btn-primary { background: var(--dorado); color: var(--azul); }
+    .btn-primary:hover { background: var(--dorado-hover); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary { background: var(--azul); color: var(--blanco); }
+    .btn-secondary:hover { background: var(--azul-hover); }
+    .btn-outline { background: transparent; color: var(--azul); border: 2px solid var(--azul); }
+    .btn-outline:hover { background: var(--azul); color: var(--blanco); }
+    .btn-danger { background: var(--rojo); color: var(--blanco); }
+    .btn-danger:hover { background: #a93226; }
+    .btn-sm { padding: 8px 16px; min-height: 36px; font-size: 13px; }
+    .btn-block { width: 100%; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* BADGES */
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-pendiente { background: #e8edf2; color: #556; }
+    .badge-activo { background: #d4edda; color: #1a5e34; }
+    .badge-cerrado { background: #fce4e4; color: #8b1a1a; }
+    .badge-completado { background: #cce5ff; color: #004085; }
+    .badge-xl { font-size: 17px; padding: 8px 24px; }
+
+    /* ALERTS */
+    .alert { padding: 12px 16px; border-radius: 6px; font-size: 14px; margin-bottom: 16px; }
+    .alert-success { background: #d4edda; color: #1a5e34; border-left: 4px solid var(--verde); }
+    .alert-error   { background: #fce4e4; color: #8b1a1a; border-left: 4px solid var(--rojo); }
+    .alert-info    { background: #cce5ff; color: #004085; border-left: 4px solid #004085; }
+    .alert-warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
+
+    /* FORMS */
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+    .form-control { width: 100%; padding: 12px 14px; border: 2px solid var(--gris-borde); border-radius: 6px; font-size: 16px; transition: var(--tr); font-family: inherit; }
+    .form-control:focus { outline: none; border-color: var(--azul); box-shadow: 0 0 0 3px rgba(0,51,102,0.1); }
+    .form-control.is-error { border-color: var(--rojo); }
+    .error-msg { color: var(--rojo); font-size: 13px; margin-top: 6px; display: none; }
+
+    /* EMPTY STATE */
+    .empty { text-align: center; padding: 48px 24px; color: var(--texto-suave); }
+    .empty .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* TABLA */
+    .tabla-wrap { overflow-x: auto; border-radius: var(--radio); border: 1px solid var(--gris-borde); }
+    .tabla { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .tabla th { background: var(--azul); color: var(--blanco); padding: 12px 16px; text-align: left; font-weight: 600; white-space: nowrap; }
+    .tabla td { padding: 10px 16px; border-top: 1px solid var(--gris-borde); }
+    .tabla tbody tr:nth-child(even) td { background: #f8f9fa; }
+    .tabla tbody tr:hover td { background: #f0f4f8; }
+    .nota-ok  { color: var(--verde); font-weight: 700; }
+    .nota-mal { color: var(--rojo);  font-weight: 700; }
+
+    /* UPLOAD AREA */
+    .upload-area { border: 2px dashed var(--gris-borde); border-radius: var(--radio); padding: 32px; text-align: center; cursor: pointer; transition: var(--tr); background: var(--gris); }
+    .upload-area:hover { border-color: var(--azul); background: #f0f4f8; }
+    .upload-area .u-icon { font-size: 40px; margin-bottom: 10px; }
+    .upload-area p { font-size: 14px; color: var(--texto-suave); }
+    .upload-area input[type="file"] { display: none; }
+
+    /* TABS */
+    .tabs { display: flex; border-bottom: 2px solid var(--gris-borde); margin-bottom: 20px; }
+    .tab-btn { padding: 10px 20px; background: none; border: none; font-size: 14px; cursor: pointer; color: var(--texto-suave); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: var(--tr); font-weight: 600; font-family: inherit; }
+    .tab-btn:hover { color: var(--azul); }
+    .tab-btn.active { color: var(--azul); border-bottom-color: var(--azul); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: var(--blanco); border-radius: var(--radio); padding: 32px; max-width: 420px; width: 92%; box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+    .modal-box h3 { font-size: 18px; color: var(--azul); margin-bottom: 12px; }
+    .modal-box p  { font-size: 15px; color: var(--texto); margin-bottom: 24px; line-height: 1.5; }
+    .modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+
+    /* ========================
+       PORTAL
+    ======================== */
+    .portal-intro { text-align: center; margin-bottom: 28px; }
+    .portal-intro h2 { font-size: 26px; color: var(--azul); margin-bottom: 6px; }
+    .portal-intro p  { color: var(--texto-suave); }
+    .tests-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+    .test-card { background: var(--blanco); border-radius: var(--radio); box-shadow: var(--sombra); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.15s; }
+    .test-card:hover { transform: translateY(-2px); }
+    .tc-head { background: var(--azul); color: var(--blanco); padding: 20px; text-align: center; }
+    .tc-head .tc-num { font-size: 36px; font-weight: 900; color: var(--dorado); line-height: 1; }
+    .tc-head .tc-lbl { font-size: 13px; opacity: 0.75; margin-top: 4px; }
+    .tc-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .tc-body .tc-name { font-size: 14px; font-weight: 600; color: var(--azul); line-height: 1.4; }
+    .tc-body .tc-sub  { font-size: 13px; color: var(--texto-suave); }
+    .tc-foot { padding: 16px 20px; border-top: 1px solid var(--gris-borde); }
+
+    /* ========================
+       ACCESO (CÉDULA)
+    ======================== */
+    .acceso-wrap { max-width: 520px; margin: 0 auto; }
+    .btn-back { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; color: var(--azul); font-size: 14px; cursor: pointer; margin-bottom: 20px; padding: 4px 0; font-family: inherit; }
+    .btn-back:hover { text-decoration: underline; }
+    .acceso-card { background: var(--blanco); border-radius: var(--radio); box-shadow: var(--sombra); padding: 32px; }
+    .acceso-card h2 { font-size: 20px; color: var(--azul); margin-bottom: 4px; }
+    .acceso-card .sub { font-size: 14px; color: var(--texto-suave); margin-bottom: 24px; }
+    .instrucciones { background: #f0f4f8; border-left: 4px solid var(--azul); border-radius: 0 6px 6px 0; padding: 16px; margin-bottom: 24px; }
+    .instrucciones h4 { font-size: 14px; font-weight: 700; color: var(--azul); margin-bottom: 10px; }
+    .instrucciones ul { list-style: none; }
+    .instrucciones li { font-size: 14px; padding: 3px 0 3px 16px; position: relative; }
+    .instrucciones li::before { content: '•'; position: absolute; left: 0; color: var(--dorado); font-weight: bold; }
+
+    /* ========================
+       TEST
+    ======================== */
+    .test-wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    .test-topbar { background: var(--azul); color: var(--blanco); border-radius: var(--radio); padding: 14px 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .test-topbar .tt-titulo { font-size: 15px; font-weight: 600; }
+    .timer { background: rgba(255,255,255,0.12); padding: 8px 18px; border-radius: 6px; font-size: 22px; font-weight: 700; font-family: 'Courier New', monospace; color: var(--dorado); }
+    .timer.warn { color: #ff6b6b; }
+    .prog-box { background: var(--blanco); border-radius: var(--radio); padding: 16px 22px; box-shadow: var(--sombra); }
+    .prog-info { display: flex; justify-content: space-between; font-size: 13px; color: var(--texto-suave); margin-bottom: 8px; }
+    .prog-bar  { height: 8px; background: var(--gris-borde); border-radius: 4px; overflow: hidden; }
+    .prog-fill { height: 100%; background: var(--dorado); border-radius: 4px; transition: width 0.3s; }
+    .nav-dots  { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--gris-borde); background: var(--blanco); font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--tr); }
+    .dot.resp { background: var(--azul); color: var(--blanco); border-color: var(--azul); }
+    .dot.curr { border-color: var(--dorado); border-width: 3px; }
+    .preg-card { background: var(--blanco); border-radius: var(--radio); box-shadow: var(--sombra); padding: 32px; }
+    .preg-num  { font-size: 13px; font-weight: 600; color: var(--texto-suave); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .preg-txt  { font-size: 18px; font-weight: 600; color: var(--azul); line-height: 1.5; margin-bottom: 24px; }
+    .opciones  { display: flex; flex-direction: column; gap: 12px; }
+    .opc-btn   { display: flex; align-items: flex-start; gap: 14px; padding: 14px 18px; border: 2px solid var(--gris-borde); border-radius: var(--radio); background: var(--blanco); cursor: pointer; text-align: left; font-size: 16px; color: var(--texto); transition: var(--tr); min-height: 52px; font-family: inherit; }
+    .opc-btn:hover { border-color: var(--azul); background: #f0f4f8; }
+    .opc-btn.sel   { border-color: var(--azul); background: #e8f0f8; }
+    .opc-letra { font-weight: 700; color: var(--azul); min-width: 22px; flex-shrink: 0; }
+    .test-nav  { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+    /* ========================
+       RESULTADO
+    ======================== */
+    .res-wrap { max-width: 700px; margin: 0 auto; }
+    .res-score { text-align: center; padding: 40px; background: var(--blanco); border-radius: var(--radio); box-shadow: var(--sombra); margin-bottom: 24px; }
+    .res-num   { font-size: 72px; font-weight: 900; color: var(--azul); line-height: 1; }
+    .res-sub   { font-size: 18px; color: var(--texto-suave); margin: 8px 0 16px; }
+    .rev-tabla { background: var(--blanco); border-radius: var(--radio); box-shadow: var(--sombra); overflow: hidden; margin-bottom: 24px; }
+    .rev-tabla h3 { padding: 16px 24px; font-size: 16px; color: var(--azul); border-bottom: 1px solid var(--gris-borde); }
+    .rev-tabla table { width: 100%; border-collapse: collapse; }
+    .rev-tabla th { background: #f0f4f8; padding: 10px 16px; text-align: left; font-size: 13px; color: var(--texto-suave); font-weight: 600; }
+    .rev-tabla td { padding: 10px 16px; font-size: 14px; border-top: 1px solid var(--gris-borde); }
+    .rev-tabla tr:nth-child(even) td { background: #fafafa; }
+    .ic { font-weight: 700; }
+    .ic.ok  { color: var(--verde); }
+    .ic.mal { color: var(--rojo); }
+
+    /* ========================
+       ADMIN LOGIN
+    ======================== */
+    .login-wrap { min-height: 75vh; display: flex; align-items: center; justify-content: center; }
+    .login-card { background: var(--blanco); border-radius: var(--radio); box-shadow: 0 4px 24px rgba(0,0,0,0.15); padding: 40px; width: 100%; max-width: 400px; }
+    .login-card .l-icon { text-align: center; font-size: 52px; margin-bottom: 20px; }
+    .login-card h2 { text-align: center; font-size: 22px; color: var(--azul); margin-bottom: 6px; }
+    .login-card .l-sub { text-align: center; font-size: 14px; color: var(--texto-suave); margin-bottom: 28px; }
+    .link-volver { display: block; text-align: center; margin-top: 16px; font-size: 14px; color: var(--texto-suave); cursor: pointer; background: none; border: none; font-family: inherit; width: 100%; }
+    .link-volver:hover { color: var(--azul); text-decoration: underline; }
+
+    /* ========================
+       ADMIN PANEL
+    ======================== */
+    .admin-layout { display: flex; gap: 0; min-height: 70vh; }
+    .admin-sidebar { width: 230px; min-width: 230px; background: var(--azul); padding: 20px 0; border-radius: var(--radio) 0 0 var(--radio); display: flex; flex-direction: column; }
+    .sb-title { color: var(--dorado); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 0 18px 14px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 6px; }
+    .sb-item { display: flex; align-items: center; gap: 10px; padding: 11px 18px; color: rgba(255,255,255,0.72); cursor: pointer; font-size: 14px; transition: var(--tr); border-left: 3px solid transparent; border: none; background: none; font-family: inherit; width: 100%; text-align: left; }
+    .sb-item:hover { background: rgba(255,255,255,0.08); color: var(--blanco); }
+    .sb-item.active { background: rgba(200,168,75,0.15); color: var(--dorado); border-left: 3px solid var(--dorado); font-weight: 600; }
+    .sb-item .sb-icon { font-size: 16px; flex-shrink: 0; }
+    .sb-spacer { flex: 1; }
+    .admin-body { flex: 1; background: var(--blanco); padding: 28px 30px; border-radius: 0 var(--radio) var(--radio) 0; box-shadow: var(--sombra); overflow-x: auto; }
+    .adm-sec { display: none; }
+    .adm-sec.active { display: block; }
+    .adm-sec h2 { font-size: 22px; color: var(--azul); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--gris-borde); }
+
+    /* KPI */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi { background: var(--gris); border-radius: var(--radio); padding: 20px; border-left: 4px solid var(--dorado); }
+    .kpi .kv { font-size: 36px; font-weight: 900; color: var(--azul); line-height: 1; }
+    .kpi .kl { font-size: 13px; color: var(--texto-suave); margin-top: 4px; }
+
+    /* Test management cards */
+    .tests-gest-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+    .tg-card { border: 2px solid var(--gris-borde); border-radius: var(--radio); padding: 20px; }
+    .tg-top  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .tg-nombre { font-size: 13px; font-weight: 600; color: var(--azul); margin-bottom: 14px; line-height: 1.4; }
+    .tg-info { font-size: 12px; color: var(--texto-suave); line-height: 1.8; margin-bottom: 14px; }
+
+    /* Bar chart */
+    .bar-chart { display: flex; gap: 8px; align-items: flex-end; height: 140px; padding: 0 4px; }
+    .bar-item  { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+    .bar-val   { font-size: 12px; font-weight: 700; color: var(--azul); min-height: 16px; }
+    .bar-fill  { width: 100%; border-radius: 3px 3px 0 0; min-height: 3px; transition: height 0.4s; }
+    .bar-label { font-size: 10px; color: var(--texto-suave); text-align: center; }
+
+    /* Elegibles info */
+    .elegibles-req { background: #f0f4f8; border-left: 4px solid var(--azul); border-radius: 0 6px 6px 0; padding: 14px 16px; margin-bottom: 20px; font-size: 14px; }
+
+    /* Export buttons */
+    .export-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+
+    /* Inline select */
+    select.inline-sel { border: 1px solid var(--gris-borde); border-radius: 4px; padding: 4px 8px; font-size: 13px; background: var(--blanco); cursor: pointer; }
+
+    /* Demo data box */
+    .demo-box { border: 2px dashed var(--dorado); border-radius: var(--radio); padding: 16px 20px; background: #fffbf0; margin-bottom: 20px; }
+    .demo-box p { font-size: 13px; color: #7a5c00; margin-bottom: 10px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-info h1 { font-size: 13px; }
+      .main { padding: 16px 12px 80px; }
+      .admin-layout { flex-direction: column; }
+      .admin-sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; padding: 10px; border-radius: var(--radio) var(--radio) 0 0; }
+      .sb-item { padding: 8px 12px; border-left: none; border-radius: 6px; font-size: 13px; }
+      .sb-item.active { border-left: none; }
+      .sb-spacer { display: none; }
+      .admin-body { border-radius: 0 0 var(--radio) var(--radio); padding: 18px 16px; }
+      .tests-grid { grid-template-columns: 1fr 1fr; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 480px) {
+      .tests-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== HEADER ==================== -->
+<header class="header">
+  <div class="header-info">
+    <h1>Programa de Formación en Competencia Económica e IA</h1>
+    <p>Convenio SCE-CEG-CM-NAC-2024-10 &nbsp;·&nbsp; 26 mayo – 23 junio 2026</p>
+  </div>
+</header>
+
+<!-- ==================== VIEW: PORTAL ==================== -->
+<div id="view-portal" class="view active">
+  <div class="main">
+    <div class="portal-intro">
+      <h2>Plataforma de Evaluaciones</h2>
+      <p>Seleccione la evaluación que desea rendir. Solo podrá acceder al test que esté disponible.</p>
+    </div>
+    <div class="tests-grid" id="portal-grid"></div>
+  </div>
+</div>
+
+<!-- ==================== VIEW: CÉDULA ==================== -->
+<div id="view-cedula" class="view">
+  <div class="main">
+    <div class="acceso-wrap">
+      <button class="btn-back" onclick="irPortal()">← Volver al portal</button>
+      <div class="acceso-card">
+        <h2 id="ac-titulo">Evaluación</h2>
+        <p class="sub" id="ac-sub"></p>
+        <div class="form-group">
+          <label for="inp-cedula">Número de cédula</label>
+          <input type="text" id="inp-cedula" class="form-control" placeholder="0000000000"
+                 maxlength="10" inputmode="numeric" onkeypress="if(event.key==='Enter')iniciarTest()">
+          <div class="error-msg" id="cedula-err"></div>
+        </div>
+        <div class="instrucciones">
+          <h4>Instrucciones</h4>
+          <ul>
+            <li>Este test consta de <strong>10 preguntas</strong> de opción múltiple (A, B, C o D).</li>
+            <li>Tiene <strong>60 minutos</strong> para completarlo a partir de que inicie.</li>
+            <li>La nota mínima para aprobar es <strong>7.0 / 10.0</strong>.</li>
+            <li>Puede navegar libremente entre preguntas antes de finalizar.</li>
+            <li>Una vez enviado, no podrá volver a rendir este test.</li>
+          </ul>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="iniciarTest()">Iniciar evaluación →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== VIEW: TEST ==================== -->
+<div id="view-test" class="view">
+  <div class="main">
+    <div class="test-wrap">
+      <div class="test-topbar">
+        <div class="tt-titulo" id="test-titulo-bar"></div>
+        <div class="timer" id="timer">60:00</div>
+      </div>
+      <div class="prog-box">
+        <div class="prog-info">
+          <span id="prog-resp">0 de 15 respondidas</span>
+          <span id="prog-pct">0%</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="nav-dots" id="nav-dots"></div>
+      </div>
+      <div class="preg-card">
+        <div class="preg-num" id="preg-num">Pregunta 1 de 15</div>
+        <div class="preg-txt" id="preg-txt"></div>
+        <div class="opciones" id="opciones"></div>
+      </div>
+      <div class="test-nav">
+        <button class="btn btn-outline" id="btn-prev" onclick="prevPreg()">← Anterior</button>
+        <button class="btn btn-secondary" onclick="confirmarFin()">Finalizar y entregar</button>
+        <button class="btn btn-primary"  id="btn-next" onclick="nextPreg()">Siguiente →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== VIEW: RESULTADO ==================== -->
+<div id="view-resultado" class="view">
+  <div class="main">
+    <div class="res-wrap">
+      <div class="res-score" id="res-score"></div>
+      <div class="rev-tabla" id="rev-tabla"></div>
+      <div style="text-align:center">
+        <button class="btn btn-secondary" onclick="irPortal()">Volver al portal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== VIEW: ADMIN LOGIN ==================== -->
+<div id="view-admin-login" class="view">
+  <div class="main">
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="l-icon">🔐</div>
+        <h2>Panel Administrador</h2>
+        <p class="l-sub">Ingrese su número de cédula para acceder</p>
+        <div class="form-group">
+          <label for="admin-inp">Cédula de administrador</label>
+          <input type="text" id="admin-inp" class="form-control" placeholder="0000000000"
+                 maxlength="10" inputmode="numeric" onkeypress="if(event.key==='Enter')loginAdmin()">
+          <div class="error-msg" id="admin-err">Cédula no reconocida como administrador.</div>
+        </div>
+        <button class="btn btn-secondary btn-block" onclick="loginAdmin()">Acceder</button>
+        <button class="link-volver" onclick="irPortal()">← Volver al portal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== VIEW: ADMIN PANEL ==================== -->
+<div id="view-admin" class="view">
+  <div class="main" style="max-width:1200px;padding-top:20px">
+    <div class="admin-layout">
+
+      <!-- Sidebar -->
+      <nav class="admin-sidebar">
+        <div class="sb-title">Panel Admin</div>
+        <button class="sb-item active" data-sec="adm-dashboard" onclick="adminNav(this,'adm-dashboard')">
+          <span class="sb-icon">📊</span> Dashboard
+        </button>
+        <button class="sb-item" data-sec="adm-estadisticas" onclick="adminNav(this,'adm-estadisticas')">
+          <span class="sb-icon">📈</span> Estadísticas
+        </button>
+        <button class="sb-item" data-sec="adm-tabla" onclick="adminNav(this,'adm-tabla')">
+          <span class="sb-icon">📋</span> Tabla consolidada
+        </button>
+        <button class="sb-item" data-sec="adm-elegibles" onclick="adminNav(this,'adm-elegibles')">
+          <span class="sb-icon">🏆</span> Elegibles
+        </button>
+        <button class="sb-item" data-sec="adm-tests" onclick="adminNav(this,'adm-tests')">
+          <span class="sb-icon">⚙️</span> Gestión de tests
+        </button>
+        <button class="sb-item" data-sec="adm-participantes" onclick="adminNav(this,'adm-participantes')">
+          <span class="sb-icon">👥</span> Participantes
+        </button>
+        <button class="sb-item" data-sec="adm-preguntas" onclick="adminNav(this,'adm-preguntas')">
+          <span class="sb-icon">❓</span> Preguntas
+        </button>
+        <div class="sb-spacer"></div>
+        <button class="sb-item" onclick="logoutAdmin()">
+          <span class="sb-icon">🚪</span> Cerrar sesión
+        </button>
+      </nav>
+
+      <!-- Content -->
+      <div class="admin-body">
+
+        <!-- DASHBOARD -->
+        <div id="adm-dashboard" class="adm-sec active">
+          <h2>Dashboard</h2>
+          <div class="demo-box">
+            <p>💡 <strong>Datos de demostración:</strong> Cargue participantes y preguntas reales desde las secciones del menú, o use los datos demo para probar el sistema.</p>
+            <button class="btn btn-sm btn-outline" onclick="cargarDemoData()">Cargar datos de demostración</button>
+            &nbsp;
+            <button class="btn btn-sm btn-danger" onclick="limpiarTodo()">Limpiar todos los datos</button>
+          </div>
+          <details style="margin-bottom:20px;border:1px solid var(--gris-borde);border-radius:var(--radio);overflow:hidden">
+            <summary style="padding:12px 16px;background:var(--gris);cursor:pointer;font-weight:600;font-size:14px;color:var(--azul)">
+              📁 Guía de archivos — cómo y dónde cargar los datos (clic para expandir)
+            </summary>
+            <div style="padding:16px 20px;font-size:14px;line-height:2">
+              <strong style="color:var(--azul)">Participantes</strong> → menú "Participantes"<br>
+              &nbsp;&nbsp;• <em>Cargar lista:</em> suba cualquier archivo Excel con columnas <code>cedula</code> (10 dígitos) y <code>nombre</code><br>
+              &nbsp;&nbsp;• <em>Registrar individualmente:</em> ingrese cédula, nombres y apellidos en el formulario<br>
+              <br>
+              <strong style="color:var(--azul)">Preguntas</strong> → menú "Preguntas" → pestaña E1, E2, E3 o E4<br>
+              &nbsp;&nbsp;• Nombre sugerido: <code>test_01_preguntas.xlsx</code>, <code>test_02_preguntas.xlsx</code>, <code>test_03_preguntas.xlsx</code>, <code>test_04_preguntas.xlsx</code><br>
+              &nbsp;&nbsp;• Columnas requeridas: <code>pregunta</code> | <code>A</code> | <code>B</code> | <code>C</code> | <code>D</code> | <code>respuesta</code><br>
+              &nbsp;&nbsp;• La columna <code>respuesta</code> debe contener solo A, B, C o D (mayúscula)<br>
+              &nbsp;&nbsp;• Se requieren mínimo 10 filas válidas por archivo<br>
+              <br>
+              <span style="color:var(--texto-suave)">ℹ️ Los archivos se cargan desde esta interfaz (no desde una carpeta del sistema). Los datos se guardan en el navegador (localStorage).</span>
+            </div>
+          </details>
+          <div class="kpi-grid" id="kpi-grid"></div>
+          <div id="dash-resumen"></div>
+        </div>
+
+        <!-- ESTADÍSTICAS -->
+        <div id="adm-estadisticas" class="adm-sec">
+          <h2>Estadísticas por evaluación</h2>
+          <div id="stats-content"></div>
+        </div>
+
+        <!-- TABLA CONSOLIDADA -->
+        <div id="adm-tabla" class="adm-sec">
+          <h2>Tabla consolidada de participantes</h2>
+          <div class="export-row">
+            <button class="btn btn-secondary btn-sm" onclick="exportarCompletos()">
+              ⬇ resultados_completos.xlsx
+            </button>
+          </div>
+          <div id="tabla-content"></div>
+        </div>
+
+        <!-- ELEGIBLES -->
+        <div id="adm-elegibles" class="adm-sec">
+          <h2>Elegibles para certificado</h2>
+          <div class="elegibles-req">
+            <strong>Requisitos:</strong> Asistencia ≥ 80% (≥ 4 de 5 sesiones) + Aprobar los 4 tests (nota ≥ 7.0) + Entregar Proyecto Final
+          </div>
+          <div class="export-row">
+            <button class="btn btn-primary btn-sm" onclick="exportarElegibles()">
+              ⬇ elegibles_certificado.xlsx
+            </button>
+          </div>
+          <div id="elegibles-content"></div>
+        </div>
+
+        <!-- GESTIÓN DE TESTS -->
+        <div id="adm-tests" class="adm-sec">
+          <h2>Gestión de evaluaciones</h2>
+          <div class="alert alert-info" style="margin-bottom:20px">
+            Solo puede haber <strong>1 evaluación activa</strong> a la vez. Al activar una, la anterior se cierra automáticamente.
+          </div>
+          <div class="tests-gest-grid" id="tests-gest-grid"></div>
+        </div>
+
+        <!-- PARTICIPANTES -->
+        <div id="adm-participantes" class="adm-sec">
+          <h2>Gestión de participantes</h2>
+          <div class="tabs">
+            <button class="tab-btn active" onclick="swTab(this,'tab-subir')">Cargar lista</button>
+            <button class="tab-btn" onclick="swTab(this,'tab-registrar')">Registrar individualmente</button>
+            <button class="tab-btn" onclick="swTab(this,'tab-ver-p')">Ver participantes</button>
+          </div>
+          <div id="tab-subir" class="tab-panel active">
+            <p style="margin-bottom:14px;font-size:14px;color:var(--texto-suave)">
+              Suba el archivo <strong>participantes.xlsx</strong> con columnas: <code>cedula</code>, <code>nombre</code>.
+            </p>
+            <div class="upload-area" onclick="document.getElementById('file-part').click()">
+              <div class="u-icon">📂</div>
+              <p>Haga clic para seleccionar participantes.xlsx</p>
+              <p style="margin-top:6px;font-size:12px">Columnas requeridas: "cedula" (10 dígitos) y "nombre"</p>
+              <input type="file" id="file-part" accept=".xlsx,.xls" onchange="cargarParticipantes(event)">
+            </div>
+            <div id="alert-part" style="margin-top:12px"></div>
+          </div>
+          <div id="tab-registrar" class="tab-panel">
+            <p style="margin-bottom:18px;font-size:14px;color:var(--texto-suave)">
+              Registre un participante ingresando su cédula, dos nombres y dos apellidos.
+            </p>
+            <div style="max-width:500px">
+              <div class="form-group">
+                <label for="reg-cedula">Número de cédula <span style="color:var(--rojo)">*</span></label>
+                <input type="text" id="reg-cedula" class="form-control" placeholder="0000000000"
+                       maxlength="10" inputmode="numeric" oninput="validarCedulaReg()">
+                <div class="error-msg" id="err-reg-cedula"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div class="form-group">
+                  <label for="reg-pnombre">Primer nombre <span style="color:var(--rojo)">*</span></label>
+                  <input type="text" id="reg-pnombre" class="form-control" placeholder="Ej: María">
+                </div>
+                <div class="form-group">
+                  <label for="reg-snombre">Segundo nombre</label>
+                  <input type="text" id="reg-snombre" class="form-control" placeholder="Ej: Isabel">
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div class="form-group">
+                  <label for="reg-papellido">Primer apellido <span style="color:var(--rojo)">*</span></label>
+                  <input type="text" id="reg-papellido" class="form-control" placeholder="Ej: García">
+                </div>
+                <div class="form-group">
+                  <label for="reg-sapellido">Segundo apellido <span style="color:var(--rojo)">*</span></label>
+                  <input type="text" id="reg-sapellido" class="form-control" placeholder="Ej: López">
+                </div>
+              </div>
+              <div id="alert-reg" style="margin-bottom:12px"></div>
+              <button class="btn btn-secondary" onclick="registrarParticipante()">Registrar participante</button>
+            </div>
+          </div>
+          <div id="tab-ver-p" class="tab-panel">
+            <div id="tabla-part"></div>
+          </div>
+        </div>
+
+        <!-- PREGUNTAS -->
+        <div id="adm-preguntas" class="adm-sec">
+          <h2>Gestión de preguntas</h2>
+          <div class="tabs">
+            <button class="tab-btn active" onclick="swTab(this,'tab-pq-E1')">E1</button>
+            <button class="tab-btn" onclick="swTab(this,'tab-pq-E2')">E2</button>
+            <button class="tab-btn" onclick="swTab(this,'tab-pq-E3')">E3</button>
+            <button class="tab-btn" onclick="swTab(this,'tab-pq-E4')">E4</button>
+          </div>
+          <div id="tab-pq-E1" class="tab-panel active"><div id="pq-area-E1"></div></div>
+          <div id="tab-pq-E2" class="tab-panel"><div id="pq-area-E2"></div></div>
+          <div id="tab-pq-E3" class="tab-panel"><div id="pq-area-E3"></div></div>
+          <div id="tab-pq-E4" class="tab-panel"><div id="pq-area-E4"></div></div>
+        </div>
+
+      </div><!-- /admin-body -->
+    </div><!-- /admin-layout -->
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="footer">
+  <span class="footer-txt">Convenio SCE-CEG-CM-NAC-2024-10 &nbsp;·&nbsp; Martes 14:00–17:00</span>
+  <button class="btn-admin-footer" onclick="irAdminLogin()">Administrador</button>
+</footer>
+
+<!-- ==================== MODAL ==================== -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)cerrarModal()">
+  <div class="modal-box">
+    <h3 id="modal-titulo"></h3>
+    <p  id="modal-msg"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" id="modal-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCRIPT ==================== -->
+<script>
+// ============================================================
+// CONSTANTES
+// ============================================================
+const ADMIN_CED   = '0924209984';
+const TESTS       = ['E1','E2','E3','E4'];
+const TEST_NOMBRE = { E1:'Módulo 1 — Fundamentos de Competencia Económica', E2:'Módulo 2 — Inteligencia Artificial para Economistas', E3:'Módulo 3 — Marco Jurídico de la Competencia', E4:'Módulo 4 — Herramientas de IA Aplicadas al Análisis' };
+const TEST_FECHA  = { E1:'26 may 2026', E2:'02 jun 2026', E3:'09 jun 2026', E4:'16 jun 2026' };
+const NOTA_MIN    = 7.0;
+const N_PREGS     = 10;
+const TIEMPO_SEG  = 60 * 60;
+
+// ============================================================
+// ESTADO (localStorage)
+// ============================================================
+function cargar() {
+  return {
+    participantes: JSON.parse(localStorage.getItem('ceg_part') || '[]'),
+    preguntas:     JSON.parse(localStorage.getItem('ceg_pregs') || '{"E1":[],"E2":[],"E3":[],"E4":[]}'),
+    tests_estado:  JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"pendiente","E2":"pendiente","E3":"pendiente","E4":"pendiente"}'),
+    resultados:    JSON.parse(localStorage.getItem('ceg_res') || '[]'),
+    asistencia:    JSON.parse(localStorage.getItem('ceg_asist') || '{}'),
+    proyectos:     JSON.parse(localStorage.getItem('ceg_proy') || '{}')
+  };
+}
+function guardar(s) {
+  localStorage.setItem('ceg_part',   JSON.stringify(s.participantes));
+  localStorage.setItem('ceg_pregs',  JSON.stringify(s.preguntas));
+  localStorage.setItem('ceg_tstate', JSON.stringify(s.tests_estado));
+  localStorage.setItem('ceg_res',    JSON.stringify(s.resultados));
+  localStorage.setItem('ceg_asist',  JSON.stringify(s.asistencia));
+  localStorage.setItem('ceg_proy',   JSON.stringify(s.proyectos));
+}
+let st = cargar();
+
+// ============================================================
+// SESIÓN (RAM)
+// ============================================================
+let ses = {
+  test: null, cedula: null, nombre: null,
+  resps: new Array(N_PREGS).fill(null),
+  idx: 0, timer: null, segs: TIEMPO_SEG
+};
+
+// ============================================================
+// NAVEGACIÓN DE VISTAS
+// ============================================================
+function mostrar(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function irPortal() {
+  pararTimer();
+  st = cargar();
+  renderPortal();
+  mostrar('view-portal');
+}
+function irAdminLogin() {
+  document.getElementById('admin-inp').value = '';
+  document.getElementById('admin-err').style.display = 'none';
+  mostrar('view-admin-login');
+}
+
+// ============================================================
+// PORTAL
+// ============================================================
+function renderPortal() {
+  document.getElementById('portal-grid').innerHTML = TESTS.map(t => {
+    const estado = st.tests_estado[t];
+    const pregs  = (st.preguntas[t] || []).length >= N_PREGS;
+    let badge = 'badge-pendiente', badgeTxt = 'PRÓXIMAMENTE';
+    let btn   = `<button class="btn btn-outline btn-block" disabled>No disponible</button>`;
+    if (estado === 'activo' && pregs) {
+      badge = 'badge-activo'; badgeTxt = 'DISPONIBLE';
+      btn = `<button class="btn btn-primary btn-block" onclick="accederTest('${t}')">Rendir evaluación →</button>`;
+    } else if (estado === 'cerrado') {
+      badge = 'badge-cerrado'; badgeTxt = 'CERRADO';
+    }
+    return `
+      <div class="test-card">
+        <div class="tc-head">
+          <div class="tc-num">${t}</div>
+          <div class="tc-lbl">Evaluación</div>
+        </div>
+        <div class="tc-body">
+          <div class="tc-name">${TEST_NOMBRE[t]}</div>
+          <div class="tc-sub">📅 ${TEST_FECHA[t]}</div>
+          <div class="tc-sub">📝 10 preguntas &nbsp;·&nbsp; ⏱ 60 minutos</div>
+          <span class="badge ${badge}">${badgeTxt}</span>
+        </div>
+        <div class="tc-foot">${btn}</div>
+      </div>`;
+  }).join('');
+}
+
+// ============================================================
+// ACCESO AL TEST
+// ============================================================
+function accederTest(t) {
+  ses.test = t;
+  document.getElementById('ac-titulo').textContent = `Evaluación ${t}`;
+  document.getElementById('ac-sub').textContent    = TEST_NOMBRE[t];
+  document.getElementById('inp-cedula').value = '';
+  ocultarErr('cedula-err');
+  mostrar('view-cedula');
+  setTimeout(() => document.getElementById('inp-cedula').focus(), 80);
+}
+
+function iniciarTest() {
+  const ced = document.getElementById('inp-cedula').value.trim();
+  if (!/^\d{10}$/.test(ced)) { return mostrarErr('cedula-err', 'Ingrese un número de cédula válido (10 dígitos).'); }
+  if (ced === ADMIN_CED)      { return mostrarErr('cedula-err', 'Esta cédula no corresponde a un participante.'); }
+  const part = st.participantes.find(p => p.cedula === ced);
+  if (!part) { return mostrarErr('cedula-err', 'Cédula no encontrada. Consulte con el administrador.'); }
+  const yaRindio = st.resultados.find(r => r.cedula === ced && r.test === ses.test);
+  if (yaRindio) { return mostrarErr('cedula-err', `Ya rindió esta evaluación. Su nota fue ${yaRindio.nota.toFixed(1)}/10.`); }
+  ocultarErr('cedula-err');
+  ses.cedula = ced; ses.nombre = part.nombre;
+  ses.resps = new Array(N_PREGS).fill(null); ses.idx = 0; ses.segs = TIEMPO_SEG;
+  renderTest();
+  mostrar('view-test');
+  iniciarTimer();
+}
+function mostrarErr(id, txt) { const e = document.getElementById(id); e.textContent = txt; e.style.display = 'block'; }
+function ocultarErr(id) { document.getElementById(id).style.display = 'none'; }
+
+// ============================================================
+// TEST
+// ============================================================
+function renderTest() {
+  document.getElementById('test-titulo-bar').textContent = `${ses.test} — ${TEST_NOMBRE[ses.test]}`;
+  renderDots(); renderPreg(ses.idx); updateProg();
+}
+function renderDots() {
+  const c = document.getElementById('nav-dots'); c.innerHTML = '';
+  for (let i = 0; i < N_PREGS; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (ses.resps[i] !== null ? ' resp' : '') + (i === ses.idx ? ' curr' : '');
+    d.textContent = i + 1; d.onclick = () => irPreg(i); c.appendChild(d);
+  }
+}
+function renderPreg(i) {
+  const pregs = st.preguntas[ses.test];
+  const p = pregs[i];
+  document.getElementById('preg-num').textContent = `Pregunta ${i + 1} de ${N_PREGS}`;
+  document.getElementById('preg-txt').textContent = p.pregunta;
+  document.getElementById('opciones').innerHTML = ['A','B','C','D'].map(l => `
+    <button class="opc-btn${ses.resps[i] === l ? ' sel' : ''}" onclick="elegir('${l}',${i})">
+      <span class="opc-letra">${l})</span><span>${p[l]}</span>
+    </button>`).join('');
+  document.getElementById('btn-prev').disabled = i === 0;
+  document.getElementById('btn-next').disabled = i === N_PREGS - 1;
+}
+function elegir(l, i) { ses.resps[i] = l; renderPreg(i); renderDots(); updateProg(); }
+function irPreg(i)    { ses.idx = i; renderPreg(i); renderDots(); }
+function prevPreg()   { if (ses.idx > 0) irPreg(ses.idx - 1); }
+function nextPreg()   { if (ses.idx < N_PREGS - 1) irPreg(ses.idx + 1); }
+function updateProg() {
+  const r = ses.resps.filter(x => x !== null).length;
+  const p = Math.round(r / N_PREGS * 100);
+  document.getElementById('prog-resp').textContent = `${r} de ${N_PREGS} respondidas`;
+  document.getElementById('prog-pct').textContent  = `${p}%`;
+  document.getElementById('prog-fill').style.width = `${p}%`;
+}
+function confirmarFin() {
+  const sin = ses.resps.filter(x => x === null).length;
+  const msg = sin > 0
+    ? `Tiene ${sin} pregunta(s) sin responder. ¿Desea entregar de todas formas?`
+    : '¿Está seguro de que desea entregar la evaluación?';
+  abrirModal('Confirmar entrega', msg, finalizarTest);
+}
+function finalizarTest() {
+  cerrarModal(); pararTimer();
+  const pregs = st.preguntas[ses.test];
+  let ok = 0;
+  const det = pregs.map((p, i) => {
+    const r = ses.resps[i];
+    const c = (p.respuesta || '').toUpperCase();
+    const bien = r !== null && r === c;
+    if (bien) ok++;
+    return { pregunta: p.pregunta, resp: r, correcta: c, bien };
+  });
+  const nota = parseFloat(((ok / N_PREGS) * 10).toFixed(2));
+  const resultado = { cedula: ses.cedula, nombre: ses.nombre, test: ses.test, nota, ok, det, fecha: new Date().toLocaleString('es-EC') };
+  st = cargar(); st.resultados.push(resultado); guardar(st);
+  renderResultado(resultado); mostrar('view-resultado');
+}
+function renderResultado(r) {
+  const aprob = r.nota >= NOTA_MIN;
+  document.getElementById('res-score').innerHTML = `
+    <div style="font-size:14px;color:var(--texto-suave);margin-bottom:4px">${r.nombre} &nbsp;·&nbsp; Cédula: ${r.cedula}</div>
+    <div style="font-size:14px;color:var(--texto-suave);margin-bottom:16px">${r.test} — ${TEST_NOMBRE[r.test]}</div>
+    <div class="res-num">${r.nota.toFixed(1)}</div>
+    <div class="res-sub">de 10.0 &nbsp;·&nbsp; ${r.ok} de ${N_PREGS} correctas</div>
+    <span class="badge badge-xl ${aprob ? 'badge-activo' : 'badge-cerrado'}">${aprob ? '✓ APROBADO' : '✗ REPROBADO'}</span>
+    ${!aprob ? `<p style="margin-top:12px;font-size:14px;color:var(--texto-suave)">Nota mínima para aprobar: ${NOTA_MIN}</p>` : ''}`;
+  document.getElementById('rev-tabla').innerHTML = `
+    <h3>Revisión de respuestas</h3>
+    <table>
+      <thead><tr><th>#</th><th>Pregunta</th><th style="width:80px;text-align:center">Tu resp.</th><th style="width:80px;text-align:center">Correcta</th><th style="width:70px;text-align:center">Resultado</th></tr></thead>
+      <tbody>${r.det.map((d, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td style="font-size:13px">${d.pregunta}</td>
+          <td style="text-align:center;font-weight:600">${d.resp || '—'}</td>
+          <td style="text-align:center;font-weight:600;color:var(--verde)">${d.correcta || '—'}</td>
+          <td style="text-align:center">${d.resp === null ? '<span style="color:#aaa">—</span>' : d.bien ? '<span class="ic ok">✓</span>' : '<span class="ic mal">✗</span>'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ============================================================
+// TIMER
+// ============================================================
+function iniciarTimer() {
+  ses.segs = TIEMPO_SEG; actualizarTimer();
+  ses.timer = setInterval(() => {
+    ses.segs--;
+    actualizarTimer();
+    if (ses.segs <= 0) { pararTimer(); finalizarTest(); }
+  }, 1000);
+}
+function pararTimer() { if (ses.timer) { clearInterval(ses.timer); ses.timer = null; } }
+function actualizarTimer() {
+  const m = Math.floor(ses.segs / 60), s = ses.segs % 60;
+  const el = document.getElementById('timer');
+  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.className = 'timer' + (ses.segs <= 300 ? ' warn' : '');
+}
+
+// ============================================================
+// ADMIN — LOGIN
+// ============================================================
+function loginAdmin() {
+  const ced = document.getElementById('admin-inp').value.trim();
+  if (ced !== ADMIN_CED) { document.getElementById('admin-err').style.display = 'block'; return; }
+  document.getElementById('admin-err').style.display = 'none';
+  st = cargar();
+  renderDashboard(); mostrar('view-admin');
+}
+function logoutAdmin() { irPortal(); }
+
+// ============================================================
+// ADMIN — NAVEGACIÓN
+// ============================================================
+function adminNav(el, secId) {
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.adm-sec').forEach(s => s.classList.remove('active'));
+  document.getElementById(secId).classList.add('active');
+  st = cargar();
+  const fn = { 'adm-dashboard': renderDashboard, 'adm-estadisticas': renderEstadisticas,
+    'adm-tabla': renderTabla, 'adm-elegibles': renderElegibles,
+    'adm-tests': renderTestsGest, 'adm-participantes': renderPart, 'adm-preguntas': renderPregsAdmin };
+  if (fn[secId]) fn[secId]();
+}
+
+// ============================================================
+// ADMIN — DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const ins  = st.participantes.length;
+  const rend = st.resultados.length;
+  const notas = st.resultados.map(r => r.nota);
+  const prom  = notas.length ? (notas.reduce((a,b) => a+b,0) / notas.length).toFixed(1) : '—';
+  const eleg  = calcElegibles().length;
+  document.getElementById('kpi-grid').innerHTML = [
+    [ins,  'Participantes inscritos'],
+    [rend, 'Evaluaciones rendidas'],
+    [prom, 'Promedio general'],
+    [eleg, 'Elegibles certificado']
+  ].map(([v,l]) => `<div class="kpi"><div class="kv">${v}</div><div class="kl">${l}</div></div>`).join('');
+
+  const rows = TESTS.map(t => {
+    const e  = st.tests_estado[t];
+    const rs = st.resultados.filter(r => r.test === t);
+    const ap = rs.filter(r => r.nota >= NOTA_MIN).length;
+    const pr = rs.length ? (rs.reduce((a,r) => a+r.nota,0)/rs.length).toFixed(1) : '—';
+    const nq = (st.preguntas[t] || []).length;
+    return `<tr>
+      <td><strong>${t}</strong></td>
+      <td style="font-size:13px">${TEST_NOMBRE[t]}</td>
+      <td><span class="badge badge-${e}">${e.toUpperCase()}</span></td>
+      <td style="text-align:center">${nq >= N_PREGS ? '✓' : `${nq}/${N_PREGS}`}</td>
+      <td style="text-align:center">${rs.length}</td>
+      <td style="text-align:center">${pr}</td>
+      <td style="text-align:center">${ap}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('dash-resumen').innerHTML = `
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead><tr><th>Test</th><th>Módulo</th><th>Estado</th><th>Preguntas</th><th>Rindieron</th><th>Promedio</th><th>Aprobados</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// ============================================================
+// ADMIN — ESTADÍSTICAS
+// ============================================================
+function renderEstadisticas() {
+  const rangos = [
+    {lbl:'0–3.9',mn:0,mx:3.9},{lbl:'4–4.9',mn:4,mx:4.9},{lbl:'5–5.9',mn:5,mx:5.9},
+    {lbl:'6–6.9',mn:6,mx:6.9},{lbl:'7–7.9',mn:7,mx:7.9},{lbl:'8–8.9',mn:8,mx:8.9},{lbl:'9–10',mn:9,mx:10}
+  ];
+  document.getElementById('stats-content').innerHTML = TESTS.map(t => {
+    const rs  = st.resultados.filter(r => r.test === t);
+    const ap  = rs.filter(r => r.nota >= NOTA_MIN).length;
+    const cnt = rangos.map(rg => ({ ...rg, c: rs.filter(r => r.nota >= rg.mn && r.nota <= rg.mx).length }));
+    const mx  = Math.max(...cnt.map(c => c.c), 1);
+    const bars = cnt.map(c => {
+      const h = Math.round((c.c / mx) * 110);
+      return `<div class="bar-item">
+        <div class="bar-val">${c.c || ''}</div>
+        <div class="bar-fill" style="height:${h}px;background:${c.mn >= 7 ? 'var(--verde)' : 'var(--azul)'}"></div>
+        <div class="bar-label">${c.lbl}</div>
+      </div>`;
+    }).join('');
+    return `
+      <div style="background:var(--blanco);border:1px solid var(--gris-borde);border-radius:var(--radio);padding:20px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <strong style="color:var(--azul)">${t} — ${TEST_NOMBRE[t]}</strong>
+          <span class="badge badge-${st.tests_estado[t]}">${st.tests_estado[t].toUpperCase()}</span>
+        </div>
+        <div style="display:flex;gap:20px;font-size:14px;margin-bottom:14px;flex-wrap:wrap">
+          <span><strong>${rs.length}</strong> rindieron</span>
+          <span style="color:var(--verde)"><strong>${ap}</strong> aprobaron</span>
+          <span style="color:var(--rojo)"><strong>${rs.length - ap}</strong> reprobaron</span>
+        </div>
+        ${rs.length ? `<p style="font-size:13px;color:var(--texto-suave);margin-bottom:8px">Distribución de notas:</p><div class="bar-chart">${bars}</div>` : '<p style="font-size:14px;color:var(--texto-suave)">Sin evaluaciones rendidas aún.</p>'}
+      </div>`;
+  }).join('');
+}
+
+// ============================================================
+// ADMIN — TABLA CONSOLIDADA
+// ============================================================
+function renderTabla() {
+  if (!st.participantes.length) {
+    document.getElementById('tabla-content').innerHTML = `<div class="empty"><div class="empty-icon">👥</div><p>No hay participantes cargados.</p></div>`;
+    return;
+  }
+  const rows = st.participantes.map(p => {
+    const notas  = TESTS.map(t => { const r = st.resultados.find(r => r.cedula===p.cedula && r.test===t); return r ? r.nota : null; });
+    const asist  = st.asistencia[p.cedula] || [];
+    const asistN = asist.filter(Boolean).length;
+    const proy   = st.proyectos[p.cedula] || false;
+    return `<tr>
+      <td>${p.cedula}</td><td>${p.nombre}</td>
+      ${notas.map(n => `<td style="text-align:center" class="${n===null?'':(n>=NOTA_MIN?'nota-ok':'nota-mal')}">${n===null?'—':n.toFixed(1)}</td>`).join('')}
+      <td style="text-align:center">
+        <select class="inline-sel" onchange="setAsist('${p.cedula}',this.value)">
+          ${[0,1,2,3,4,5].map(v=>`<option value="${v}" ${v===asistN?'selected':''}>${v}/5</option>`).join('')}
+        </select>
+      </td>
+      <td style="text-align:center">
+        <select class="inline-sel" onchange="setProy('${p.cedula}',this.value)">
+          <option value="si" ${proy?'selected':''}>Entregado</option>
+          <option value="no" ${!proy?'selected':''}>Pendiente</option>
+        </select>
+      </td>
+      <td style="text-align:center">${esEleg(p.cedula)?'<span class="badge badge-activo">Elegible</span>':'<span class="badge badge-pendiente">Pendiente</span>'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tabla-content').innerHTML = `
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead><tr><th>Cédula</th><th>Nombre</th><th>E1</th><th>E2</th><th>E3</th><th>E4</th><th>Asistencia</th><th>Proyecto</th><th>Estado</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+function setAsist(ced, v) {
+  st = cargar(); const n = parseInt(v);
+  st.asistencia[ced] = [...Array(5)].map((_,i) => i < n); guardar(st);
+}
+function setProy(ced, v) { st = cargar(); st.proyectos[ced] = (v==='si'); guardar(st); }
+
+// ============================================================
+// ADMIN — ELEGIBLES
+// ============================================================
+function esEleg(ced) {
+  const asist = (st.asistencia[ced] || []).filter(Boolean).length;
+  if (asist < 4) return false;
+  if (!TESTS.every(t => { const r = st.resultados.find(r => r.cedula===ced && r.test===t); return r && r.nota >= NOTA_MIN; })) return false;
+  return st.proyectos[ced] || false;
+}
+function calcElegibles() { return st.participantes.filter(p => esEleg(p.cedula)); }
+function renderElegibles() {
+  const eleg = calcElegibles();
+  if (!eleg.length) {
+    document.getElementById('elegibles-content').innerHTML = `<div class="empty"><div class="empty-icon">🏆</div><p>Ningún participante cumple aún con todos los requisitos.</p></div>`;
+    return;
+  }
+  const rows = eleg.map((p, i) => {
+    const notas = TESTS.map(t => { const r = st.resultados.find(r => r.cedula===p.cedula && r.test===t); return r ? r.nota.toFixed(1) : '—'; });
+    const asistN = (st.asistencia[p.cedula] || []).filter(Boolean).length;
+    return `<tr>
+      <td>${i+1}</td><td>${p.cedula}</td><td>${p.nombre}</td>
+      ${notas.map(n=>`<td style="text-align:center;color:var(--verde);font-weight:700">${n}</td>`).join('')}
+      <td style="text-align:center">${asistN}/5</td>
+      <td><span class="badge badge-activo">✓ Elegible</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('elegibles-content').innerHTML = `
+    <p style="margin-bottom:14px;font-size:14px"><strong>${eleg.length}</strong> participante(s) elegibles para certificado.</p>
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead><tr><th>#</th><th>Cédula</th><th>Nombre</th><th>E1</th><th>E2</th><th>E3</th><th>E4</th><th>Asistencia</th><th>Estado</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// ============================================================
+// ADMIN — GESTIÓN DE TESTS
+// ============================================================
+function renderTestsGest() {
+  document.getElementById('tests-gest-grid').innerHTML = TESTS.map(t => {
+    const e   = st.tests_estado[t];
+    const nq  = (st.preguntas[t] || []).length;
+    const ok  = nq >= N_PREGS;
+    const rs  = st.resultados.filter(r => r.test === t).length;
+    let accion = '';
+    if (e === 'pendiente') {
+      accion = ok
+        ? `<button class="btn btn-primary btn-sm btn-block" onclick="activarTest('${t}')">Activar ${t}</button>`
+        : `<button class="btn btn-outline btn-sm btn-block" disabled>Sin preguntas (${nq}/${N_PREGS})</button>`;
+    } else if (e === 'activo') {
+      accion = `<button class="btn btn-danger btn-sm btn-block" onclick="cerrarTest('${t}')">Cerrar ${t}</button>`;
+    } else {
+      accion = `<button class="btn btn-outline btn-sm btn-block" disabled>Cerrado</button>`;
+    }
+    return `
+      <div class="tg-card">
+        <div class="tg-top"><strong style="font-size:22px;color:var(--azul)">${t}</strong><span class="badge badge-${e}">${e.toUpperCase()}</span></div>
+        <div class="tg-nombre">${TEST_NOMBRE[t]}</div>
+        <div class="tg-info">📅 ${TEST_FECHA[t]}<br>❓ Preguntas: ${nq}/${N_PREGS} ${ok?'✓':''}<br>👥 Rindieron: ${rs}</div>
+        ${accion}
+      </div>`;
+  }).join('');
+}
+function activarTest(t) {
+  abrirModal(`Activar evaluación ${t}`, `¿Desea activar ${t}? Se cerrará cualquier otra evaluación activa.`, () => {
+    cerrarModal(); st = cargar();
+    TESTS.forEach(x => { if (st.tests_estado[x] === 'activo') st.tests_estado[x] = 'cerrado'; });
+    st.tests_estado[t] = 'activo'; guardar(st); renderTestsGest();
+  });
+}
+function cerrarTest(t) {
+  abrirModal(`Cerrar evaluación ${t}`, `¿Desea cerrar ${t}? Los participantes ya no podrán rendirla.`, () => {
+    cerrarModal(); st = cargar(); st.tests_estado[t] = 'cerrado'; guardar(st); renderTestsGest();
+  });
+}
+
+// ============================================================
+// ADMIN — PARTICIPANTES
+// ============================================================
+function renderPart() {
+  const el = document.getElementById('tabla-part');
+  if (!st.participantes.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><p>Sin participantes cargados.</p></div>`; return; }
+  el.innerHTML = `
+    <p style="margin-bottom:12px;font-size:14px"><strong>${st.participantes.length}</strong> participantes registrados.</p>
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead><tr><th>#</th><th>Cédula</th><th>Nombre</th></tr></thead>
+        <tbody>${st.participantes.map((p,i) => `<tr><td>${i+1}</td><td>${p.cedula}</td><td>${p.nombre}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+}
+function cargarParticipantes(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  const alrt = document.getElementById('alert-part');
+  const rd = new FileReader();
+  rd.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+      const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1 });
+      if (json.length < 2) { alrt.innerHTML = `<div class="alert alert-error">El archivo está vacío.</div>`; return; }
+      const hdrs = json[0].map(h => String(h).toLowerCase().trim());
+      const iC = hdrs.findIndex(h => h.includes('cedula') || h.includes('cédula'));
+      const iN = hdrs.findIndex(h => h.includes('nombre') || h.includes('name'));
+      if (iC === -1 || iN === -1) { alrt.innerHTML = `<div class="alert alert-error">No se encontraron columnas "cedula" y "nombre".</div>`; return; }
+      const parts = json.slice(1).filter(r => r[iC] && r[iN] && /^\d{10}$/.test(String(r[iC]).trim()))
+        .map(r => ({ cedula: String(r[iC]).trim(), nombre: String(r[iN]).trim() }));
+      if (!parts.length) { alrt.innerHTML = `<div class="alert alert-error">No se encontraron registros válidos. Las cédulas deben tener 10 dígitos.</div>`; return; }
+      st = cargar(); st.participantes = parts; guardar(st);
+      alrt.innerHTML = `<div class="alert alert-success">✓ Se cargaron <strong>${parts.length}</strong> participantes.</div>`;
+      renderPart();
+    } catch(err) { alrt.innerHTML = `<div class="alert alert-error">Error al leer el archivo: ${err.message}</div>`; }
+  };
+  rd.readAsArrayBuffer(file); ev.target.value = '';
+}
+
+// ============================================================
+// ADMIN — PREGUNTAS
+// ============================================================
+function renderPregsAdmin() {
+  TESTS.forEach(t => {
+    const el   = document.getElementById(`pq-area-${t}`);
+    const pregs = st.preguntas[t] || [];
+    const listo = pregs.length >= N_PREGS;
+    const idx   = TESTS.indexOf(t) + 1;
+    el.innerHTML = `
+      ${listo ? `<div class="alert alert-success">✓ ${pregs.length} preguntas cargadas para ${t}.</div>` : ''}
+      ${!listo ? `
+        <p style="margin-bottom:14px;font-size:14px;color:var(--texto-suave)">
+          Suba <strong>test_0${idx}_preguntas.xlsx</strong> con columnas: <code>pregunta</code>, <code>A</code>, <code>B</code>, <code>C</code>, <code>D</code>, <code>respuesta</code> (A/B/C/D).
+        </p>
+        <div class="upload-area" onclick="document.getElementById('fpq-${t}').click()">
+          <div class="u-icon">📋</div>
+          <p>Haga clic para seleccionar test_0${idx}_preguntas.xlsx</p>
+          <p style="margin-top:6px;font-size:12px">Columnas: pregunta | A | B | C | D | respuesta</p>
+          <input type="file" id="fpq-${t}" accept=".xlsx,.xls" onchange="cargarPreguntas(event,'${t}')">
+        </div>` : ''}
+      <div id="alrt-pq-${t}" style="margin-top:10px"></div>
+      ${listo ? `
+        ${previewPregs(pregs)}
+        <div style="margin-top:12px">
+          <button class="btn btn-outline btn-sm" onclick="reemplazarPregs('${t}')">Reemplazar preguntas</button>
+        </div>` : ''}`;
+  });
+}
+function previewPregs(pregs) {
+  const rows = pregs.slice(0,5).map((p,i) => `<tr><td>${i+1}</td><td style="font-size:12px;max-width:280px">${p.pregunta}</td><td>${p.A}</td><td>${p.B}</td><td>${p.C}</td><td>${p.D}</td><td style="font-weight:700;color:var(--verde)">${p.respuesta}</td></tr>`).join('');
+  const mas  = pregs.length > 5 ? `<tr><td colspan="7" style="text-align:center;color:var(--texto-suave);font-style:italic">… y ${pregs.length-5} preguntas más</td></tr>` : '';
+  return `<div class="tabla-wrap" style="margin-top:14px"><table class="tabla" style="font-size:13px"><thead><tr><th>#</th><th>Pregunta</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Resp.</th></tr></thead><tbody>${rows}${mas}</tbody></table></div>`;
+}
+function reemplazarPregs(t) {
+  abrirModal(`Reemplazar preguntas de ${t}`, 'Las preguntas actuales serán reemplazadas con el nuevo archivo.', () => {
+    cerrarModal(); st = cargar(); st.preguntas[t] = []; guardar(st); renderPregsAdmin();
+  });
+}
+function cargarPreguntas(ev, t) {
+  const file = ev.target.files[0]; if (!file) return;
+  const alrt = document.getElementById(`alrt-pq-${t}`);
+  const rd = new FileReader();
+  rd.onload = e => {
+    try {
+      const wb   = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+      const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      if (!json.length) { alrt.innerHTML = `<div class="alert alert-error">El archivo está vacío.</div>`; return; }
+      const get = (row, key) => { const k = Object.keys(row).find(k => k.toLowerCase().trim() === key); return k ? String(row[k]).trim() : ''; };
+      const pregs = json.map(row => ({
+        pregunta: get(row,'pregunta'), A: get(row,'a'), B: get(row,'b'), C: get(row,'c'), D: get(row,'d'),
+        respuesta: get(row,'respuesta').toUpperCase()
+      })).filter(p => p.pregunta && p.A && p.B && p.C && p.D && ['A','B','C','D'].includes(p.respuesta));
+      if (pregs.length < N_PREGS) { alrt.innerHTML = `<div class="alert alert-error">Solo ${pregs.length} preguntas válidas encontradas (mínimo ${N_PREGS}). Verifique el archivo.</div>`; return; }
+      st = cargar(); st.preguntas[t] = pregs.slice(0, N_PREGS); guardar(st);
+      alrt.innerHTML = `<div class="alert alert-success">✓ ${N_PREGS} preguntas cargadas para ${t}.</div>`;
+      renderPregsAdmin(); renderTestsGest();
+    } catch(err) { alrt.innerHTML = `<div class="alert alert-error">Error: ${err.message}</div>`; }
+  };
+  rd.readAsArrayBuffer(file); ev.target.value = '';
+}
+
+// ============================================================
+// EXPORTAR EXCEL
+// ============================================================
+function exportarCompletos() {
+  st = cargar();
+  if (!st.resultados.length) { alert('No hay resultados para exportar.'); return; }
+  exportXL(st.resultados.map(r => ({
+    'Cédula': r.cedula, 'Nombre': r.nombre, 'Evaluación': r.test,
+    'Nota': r.nota, 'Correctas': r.ok, 'Total': N_PREGS,
+    'Resultado': r.nota >= NOTA_MIN ? 'APROBADO' : 'REPROBADO', 'Fecha': r.fecha
+  })), 'resultados_completos.xlsx');
+}
+function exportarElegibles() {
+  st = cargar(); const eleg = calcElegibles();
+  if (!eleg.length) { alert('No hay elegibles para exportar.'); return; }
+  exportXL(eleg.map((p, i) => {
+    const notas = {}; TESTS.forEach(t => { const r = st.resultados.find(r => r.cedula===p.cedula && r.test===t); notas[`Nota ${t}`] = r ? r.nota : ''; });
+    return { '#': i+1, 'Cédula': p.cedula, 'Nombre': p.nombre, ...notas,
+      'Asistencia': `${(st.asistencia[p.cedula]||[]).filter(Boolean).length}/5`,
+      'Proyecto': st.proyectos[p.cedula] ? 'Entregado' : 'Pendiente', 'Estado': 'ELEGIBLE' };
+  }), 'elegibles_certificado.xlsx');
+}
+function exportXL(data, fname) {
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+  XLSX.writeFile(wb, fname);
+}
+
+// ============================================================
+// DATOS DEMO
+// ============================================================
+function cargarDemoData() {
+  abrirModal('Cargar datos de demostración', 'Se cargarán 5 participantes de prueba y preguntas demo para E1. Los datos existentes serán reemplazados.', () => {
+    cerrarModal();
+    const parts = [
+      { cedula:'1700000001', nombre:'Ana García Pérez' },
+      { cedula:'1700000002', nombre:'Carlos Rodríguez Mora' },
+      { cedula:'1700000003', nombre:'María Sánchez López' },
+      { cedula:'1700000004', nombre:'Luis Mendoza Torres' },
+      { cedula:'1700000005', nombre:'Carmen Vega Ruiz' }
+    ];
+    const pregsE1 = Array.from({length:N_PREGS}, (_,i) => ({
+      pregunta: `Pregunta de demostración ${i+1}: ¿Cuál de las siguientes opciones describe mejor la competencia económica?`,
+      A: `Opción A — respuesta ${i+1}`,
+      B: `Opción B — respuesta ${i+1}`,
+      C: `Opción C — respuesta ${i+1}`,
+      D: `Opción D — respuesta ${i+1}`,
+      respuesta: ['A','B','C','D'][i % 4]
+    }));
+    st = cargar();
+    st.participantes = parts;
+    st.preguntas.E1  = pregsE1;
+    st.tests_estado.E1 = 'activo';
+    guardar(st);
+    renderDashboard();
+    alert('✓ Datos demo cargados. E1 está ACTIVO. Vaya al portal y rinda el test con la cédula 1700000001.');
+  });
+}
+function limpiarTodo() {
+  abrirModal('Limpiar todos los datos', '¿Está seguro? Se eliminarán TODOS los datos: participantes, preguntas, resultados y configuración de tests.', () => {
+    cerrarModal();
+    localStorage.clear();
+    st = cargar();
+    renderDashboard();
+    alert('✓ Datos eliminados.');
+  });
+}
+
+// ============================================================
+// REGISTRO MANUAL DE PARTICIPANTES
+// ============================================================
+function validarCedulaReg() {
+  const v   = document.getElementById('reg-cedula').value.trim();
+  const err = document.getElementById('err-reg-cedula');
+  const inp = document.getElementById('reg-cedula');
+  if (v.length > 0 && (!/^\d+$/.test(v) || v.length !== 10)) {
+    err.textContent = 'La cédula debe tener exactamente 10 dígitos numéricos.';
+    err.style.display = 'block';
+    inp.classList.add('is-error');
+  } else {
+    err.style.display = 'none';
+    inp.classList.remove('is-error');
+  }
+}
+
+function registrarParticipante() {
+  const ced  = document.getElementById('reg-cedula').value.trim();
+  const pn   = document.getElementById('reg-pnombre').value.trim();
+  const sn   = document.getElementById('reg-snombre').value.trim();
+  const pa   = document.getElementById('reg-papellido').value.trim();
+  const sa   = document.getElementById('reg-sapellido').value.trim();
+  const alrt = document.getElementById('alert-reg');
+
+  if (!/^\d{10}$/.test(ced)) {
+    alrt.innerHTML = `<div class="alert alert-error">La cédula debe tener exactamente 10 dígitos numéricos.</div>`;
+    document.getElementById('reg-cedula').focus();
+    return;
+  }
+  if (!pn) { alrt.innerHTML = `<div class="alert alert-error">Ingrese el primer nombre.</div>`; return; }
+  if (!pa) { alrt.innerHTML = `<div class="alert alert-error">Ingrese el primer apellido.</div>`; return; }
+  if (!sa) { alrt.innerHTML = `<div class="alert alert-error">Ingrese el segundo apellido.</div>`; return; }
+
+  st = cargar();
+  if (st.participantes.find(p => p.cedula === ced)) {
+    alrt.innerHTML = `<div class="alert alert-error">Ya existe un participante registrado con la cédula ${ced}.</div>`;
+    return;
+  }
+
+  const nombre = [pn, sn, pa, sa].filter(Boolean).join(' ');
+  st.participantes.push({ cedula: ced, nombre });
+  guardar(st);
+
+  ['reg-cedula','reg-pnombre','reg-snombre','reg-papellido','reg-sapellido'].forEach(id => {
+    document.getElementById(id).value = '';
+    document.getElementById(id).classList.remove('is-error');
+  });
+  document.getElementById('err-reg-cedula').style.display = 'none';
+  alrt.innerHTML = `<div class="alert alert-success">✓ Participante <strong>${nombre}</strong> (${ced}) registrado correctamente.</div>`;
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function swTab(btn, panelId) {
+  const tabsEl = btn.closest('.tabs');
+  tabsEl.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const parent = tabsEl.parentElement;
+  parent.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(panelId).classList.add('active');
+  if (panelId === 'tab-ver-p') renderPart();
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+let _modalCb = null;
+function abrirModal(titulo, msg, cb) {
+  document.getElementById('modal-titulo').textContent = titulo;
+  document.getElementById('modal-msg').textContent    = msg;
+  _modalCb = cb;
+  document.getElementById('modal').classList.add('open');
+}
+function cerrarModal() { document.getElementById('modal').classList.remove('open'); _modalCb = null; }
+document.getElementById('modal-ok').onclick = () => { if (_modalCb) _modalCb(); };
+
+// ============================================================
+// INIT
+// ============================================================
+irPortal();
+</script>
+</body>
+</html>
