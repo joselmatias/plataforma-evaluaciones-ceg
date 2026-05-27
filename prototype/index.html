@@ -437,6 +437,9 @@
         <button class="sb-item" data-sec="adm-preguntas" onclick="adminNav(this,'adm-preguntas')">
           <span class="sb-icon">❓</span> Preguntas
         </button>
+        <button class="sb-item" data-sec="adm-materiales" onclick="adminNav(this,'adm-materiales')">
+          <span class="sb-icon">📎</span> Materiales
+        </button>
         <div class="sb-spacer"></div>
         <button class="sb-item" onclick="logoutAdmin()">
           <span class="sb-icon">🚪</span> Cerrar sesión
@@ -592,6 +595,20 @@
           <div id="tab-pq-E4" class="tab-panel"><div id="pq-area-E4"></div></div>
         </div>
 
+        <!-- MATERIALES -->
+        <div id="adm-materiales" class="adm-sec">
+          <h2>Materiales por módulo</h2>
+          <div class="alert alert-info" style="margin-bottom:20px">
+            Ingrese la URL pública del archivo PPT para cada módulo. Los participantes verán un botón
+            <strong>⬇ Descargar presentación</strong> en la tarjeta del portal.<br><br>
+            <strong>¿Cómo obtener la URL?</strong><br>
+            &bull; <strong>Google Drive:</strong> Suba el archivo → clic derecho → "Compartir" → "Cualquier persona con el vínculo" → copie el ID del link
+            y use: <code>https://drive.google.com/uc?export=download&amp;id=ID_AQUI</code><br>
+            &bull; <strong>GitHub:</strong> Suba el archivo a la carpeta <code>slides/</code> del repositorio → abra el archivo → botón "Raw" → copie esa URL.
+          </div>
+          <div id="materiales-form"></div>
+        </div>
+
       </div><!-- /admin-body -->
     </div><!-- /admin-layout -->
   </div>
@@ -653,7 +670,8 @@ function cargar() {
     tests_estado:  JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"pendiente","E3":"pendiente","E4":"pendiente"}'),
     resultados:    JSON.parse(localStorage.getItem('ceg_res') || '[]'),
     asistencia:    JSON.parse(localStorage.getItem('ceg_asist') || '{}'),
-    proyectos:     JSON.parse(localStorage.getItem('ceg_proy') || '{}')
+    proyectos:     JSON.parse(localStorage.getItem('ceg_proy') || '{}'),
+    slides:        JSON.parse(localStorage.getItem('ceg_slides') || '{"E1":"","E2":"","E3":"","E4":""}')
   };
 }
 function guardar(s) {
@@ -663,6 +681,7 @@ function guardar(s) {
   localStorage.setItem('ceg_res',    JSON.stringify(s.resultados));
   localStorage.setItem('ceg_asist',  JSON.stringify(s.asistencia));
   localStorage.setItem('ceg_proy',   JSON.stringify(s.proyectos));
+  localStorage.setItem('ceg_slides', JSON.stringify(s.slides));
 }
 let st = cargar();
 
@@ -710,6 +729,10 @@ function renderPortal() {
     } else if (estado === 'cerrado') {
       badge = 'badge-cerrado'; badgeTxt = 'CERRADO';
     }
+    const slideUrl = (st.slides || {})[t];
+    const btnSlide = slideUrl
+      ? `<a href="${slideUrl}" target="_blank" class="btn btn-outline btn-sm btn-block" style="margin-top:8px">⬇ Descargar presentación</a>`
+      : '';
     return `
       <div class="test-card">
         <div class="tc-head">
@@ -722,7 +745,7 @@ function renderPortal() {
           <div class="tc-sub">📝 10 preguntas &nbsp;·&nbsp; ⏱ 60 minutos</div>
           <span class="badge ${badge}">${badgeTxt}</span>
         </div>
-        <div class="tc-foot">${btn}</div>
+        <div class="tc-foot">${btn}${btnSlide}</div>
       </div>`;
   }).join('');
 }
@@ -928,7 +951,8 @@ function adminNav(el, secId) {
   st = cargar();
   const fn = { 'adm-dashboard': renderDashboard, 'adm-estadisticas': renderEstadisticas,
     'adm-tabla': renderTabla, 'adm-elegibles': renderElegibles,
-    'adm-tests': renderTestsGest, 'adm-participantes': renderPart, 'adm-preguntas': renderPregsAdmin };
+    'adm-tests': renderTestsGest, 'adm-participantes': renderPart, 'adm-preguntas': renderPregsAdmin,
+    'adm-materiales': renderMateriales };
   if (fn[secId]) fn[secId]();
 }
 
@@ -1355,6 +1379,40 @@ function registrarParticipante() {
   });
   document.getElementById('err-reg-cedula').style.display = 'none';
   alrt.innerHTML = `<div class="alert alert-success">✓ Participante <strong>${nombre}</strong> (${ced}) registrado correctamente.</div>`;
+}
+
+// ============================================================
+// TABS
+// ============================================================
+// ============================================================
+// ADMIN — MATERIALES (URLs de presentaciones)
+// ============================================================
+function renderMateriales() {
+  document.getElementById('materiales-form').innerHTML = TESTS.map(t => {
+    const url = (st.slides || {})[t] || '';
+    return `
+    <div style="background:var(--gris);border-radius:var(--radio);padding:20px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <strong style="color:var(--azul);font-size:16px">${t} — ${TEST_NOMBRE[t]}</strong>
+        ${url ? '<span class="badge badge-activo">URL guardada</span>' : '<span class="badge badge-pendiente">Sin URL</span>'}
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label style="font-size:13px;color:var(--texto-suave)">URL del archivo PPT</label>
+        <input type="url" id="slide-inp-${t}" class="form-control" placeholder="https://..."
+               value="${url}" style="font-size:13px">
+      </div>
+      ${url ? `<div style="margin-bottom:10px"><a href="${url}" target="_blank" class="btn btn-outline btn-sm">↗ Probar enlace</a></div>` : ''}
+      <button class="btn btn-secondary btn-sm" onclick="guardarSlide('${t}')">Guardar URL</button>
+      ${url ? `<button class="btn btn-danger btn-sm" style="margin-left:8px" onclick="quitarSlide('${t}')">Quitar</button>` : ''}
+    </div>`;
+  }).join('');
+}
+function guardarSlide(t) {
+  const url = document.getElementById(`slide-inp-${t}`).value.trim();
+  st = cargar(); st.slides = st.slides || {}; st.slides[t] = url; guardar(st); renderMateriales();
+}
+function quitarSlide(t) {
+  st = cargar(); st.slides = st.slides || {}; st.slides[t] = ''; guardar(st); renderMateriales();
 }
 
 // ============================================================
