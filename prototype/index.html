@@ -1375,8 +1375,33 @@ function cerrarModal() { document.getElementById('modal').classList.remove('open
 document.getElementById('modal-ok').onclick = () => { if (_modalCb) _modalCb(); };
 
 // ============================================================
+// MIGRACIÓN DE localStorage (fix para usuarios con estado viejo)
+// ============================================================
+function migrateState() {
+  const tsRaw = localStorage.getItem('ceg_tstate');
+  if (tsRaw) {
+    const ts = JSON.parse(tsRaw);
+    if (ts.E1 === 'pendiente') {
+      ts.E1 = 'activo';
+      localStorage.setItem('ceg_tstate', JSON.stringify(ts));
+    }
+  }
+  const tsActual = JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo"}');
+  const pqRaw    = localStorage.getItem('ceg_pregs');
+  if (tsActual.E1 === 'activo') {
+    const pq = pqRaw ? JSON.parse(pqRaw) : {E1:[],E2:[],E3:[],E4:[]};
+    if (!pq.E1 || pq.E1.length < N_PREGS) {
+      pq.E1 = defaultPreguntas().E1;
+      localStorage.setItem('ceg_pregs', JSON.stringify(pq));
+    }
+  }
+}
+
+// ============================================================
 // INIT
 // ============================================================
+migrateState();
+st = cargar();
 irPortal();
 </script>
 </body>
