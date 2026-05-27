@@ -651,14 +651,18 @@ const MAX_INTENTOS = 3;
 // ============================================================
 function defaultPreguntas() {
   return {
-    E1: Array.from({length: N_PREGS}, (_, i) => ({
-      pregunta: `Pregunta de evaluación ${i+1}: ¿Cuál de las siguientes afirmaciones describe mejor la competencia económica en un mercado libre?`,
-      A: `Alternativa A — opción ${i+1}`,
-      B: `Alternativa B — opción ${i+1}`,
-      C: `Alternativa C — opción ${i+1}`,
-      D: `Alternativa D — opción ${i+1}`,
-      respuesta: ['A','B','C','D'][i % 4]
-    })),
+    E1: [
+      { pregunta: "Cuando hay competencia en un mercado, ¿quién se beneficia principalmente?", A: "Solo las empresas grandes", B: "El consumidor, porque tiene más opciones y mejores precios", C: "El gobierno, porque recauda más impuestos", D: "Los proveedores de materias primas", respuesta: "B" },
+      { pregunta: "¿Cuál de los siguientes ejemplos representa un mercado con POCA competencia en Ecuador?", A: "Los restaurantes de comida en una ciudad grande", B: "Las peluquerías del barrio", C: "Las empresas de telefonía celular", D: "Los vendedores de frutas en un mercado", respuesta: "C" },
+      { pregunta: "¿Qué sucede cuando una sola empresa controla todo el mercado (monopolio)?", A: "Los precios bajan porque la empresa es más eficiente", B: "El consumidor tiene más opciones", C: "La empresa puede subir precios sin que el consumidor pueda elegir otra opción", D: "Mejora automáticamente la calidad del producto", respuesta: "C" },
+      { pregunta: "¿Qué hace la Superintendencia de Competencia Económica (SCE) en Ecuador?", A: "Fija los precios de todos los productos del país", B: "Investiga y sanciona conductas que dañan la competencia en los mercados", C: "Administra los impuestos de las empresas", D: "Controla las importaciones y exportaciones", respuesta: "B" },
+      { pregunta: "¿Cuál de las siguientes acciones ES una conducta anticompetitiva?", A: "Una empresa baja sus precios innovando y reduciendo costos", B: "Dos empresas competidoras se ponen de acuerdo para cobrar el mismo precio", C: "Un nuevo competidor ingresa al mercado con un producto más barato", D: "Una empresa contrata más trabajadores para producir más", respuesta: "B" },
+      { pregunta: "¿Qué tipo de Inteligencia Artificial es el que existe y usamos hoy en día?", A: "Superinteligencia que supera al cerebro humano en todo", B: "IA General que razona y siente como un ser humano", C: "IA Estrecha que realiza tareas específicas muy bien", D: "IA con conciencia propia que toma decisiones éticas", respuesta: "C" },
+      { pregunta: "¿Cuál de estas herramientas es un asistente de IA que ayuda principalmente a mejorar y parafrasear textos?", A: "ChatGPT", B: "Quillbot", C: "Gemini", D: "NotebookLM", respuesta: "B" },
+      { pregunta: "¿Qué hace NotebookLM de Google?", A: "Busca información en redes sociales automáticamente", B: "Analiza y responde preguntas sobre documentos que tú mismo subes", C: "Crea videos con inteligencia artificial", D: "Traduce textos entre más de 100 idiomas", respuesta: "B" },
+      { pregunta: "¿Cuál de estas herramientas de IA fue desarrollada por Google?", A: "ChatGPT", B: "Claude", C: "Gemini", D: "Quillbot", respuesta: "C" },
+      { pregunta: "¿Cuál es la diferencia principal entre ChatGPT y Perplexity?", A: "ChatGPT solo funciona en inglés, Perplexity solo en español", B: "Perplexity es una IA china y ChatGPT es europea", C: "Perplexity actúa como motor de búsqueda que cita fuentes reales; ChatGPT genera respuestas propias", D: "ChatGPT es gratuito y Perplexity siempre es de pago", respuesta: "C" }
+    ],
     E2: [], E3: [], E4: []
   };
 }
@@ -1470,7 +1474,8 @@ function migrateState() {
   const pqRaw    = localStorage.getItem('ceg_pregs');
   if (tsActual.E1 === 'activo') {
     const pq = pqRaw ? JSON.parse(pqRaw) : {E1:[],E2:[],E3:[],E4:[]};
-    if (!pq.E1 || pq.E1.length < N_PREGS) {
+    const esDemo = pq.E1 && pq.E1.length > 0 && pq.E1[0].pregunta.startsWith('Pregunta de evaluación');
+    if (!pq.E1 || pq.E1.length < N_PREGS || esDemo) {
       pq.E1 = defaultPreguntas().E1;
       localStorage.setItem('ceg_pregs', JSON.stringify(pq));
     }
