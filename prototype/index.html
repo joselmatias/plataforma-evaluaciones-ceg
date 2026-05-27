@@ -671,8 +671,16 @@ function cargar() {
     resultados:    JSON.parse(localStorage.getItem('ceg_res') || '[]'),
     asistencia:    JSON.parse(localStorage.getItem('ceg_asist') || '{}'),
     proyectos:     JSON.parse(localStorage.getItem('ceg_proy') || '{}'),
-    slides:        JSON.parse(localStorage.getItem('ceg_slides') || '{"E1":"","E2":"","E3":"","E4":""}')
+    slides:        normalizarSlides(JSON.parse(localStorage.getItem('ceg_slides') || '{}'))
   };
+}
+function normalizarSlides(raw) {
+  const r = {};
+  TESTS.forEach(t => {
+    const v = raw[t];
+    r[t] = Array.isArray(v) ? v : (v ? [v, '', ''] : ['', '', '']);
+  });
+  return r;
 }
 function guardar(s) {
   localStorage.setItem('ceg_part',   JSON.stringify(s.participantes));
@@ -729,10 +737,10 @@ function renderPortal() {
     } else if (estado === 'cerrado') {
       badge = 'badge-cerrado'; badgeTxt = 'CERRADO';
     }
-    const slideUrl = (st.slides || {})[t];
-    const btnSlide = slideUrl
-      ? `<a href="${slideUrl}" target="_blank" class="btn btn-outline btn-sm btn-block" style="margin-top:8px">⬇ Descargar presentación</a>`
-      : '';
+    const slideUrls = ((st.slides || {})[t] || []).filter(u => u);
+    const btnSlide = slideUrls.map((url, i) =>
+      `<a href="${url}" target="_blank" class="btn btn-outline btn-sm btn-block" style="margin-top:8px">⬇ Presentación ${i + 1}</a>`
+    ).join('');
     return `
       <div class="test-card">
         <div class="tc-head">
@@ -1389,30 +1397,35 @@ function registrarParticipante() {
 // ============================================================
 function renderMateriales() {
   document.getElementById('materiales-form').innerHTML = TESTS.map(t => {
-    const url = (st.slides || {})[t] || '';
+    const urls = ((st.slides || {})[t] || ['', '', '']);
+    const tiene = urls.some(u => u);
+    const inputs = [0, 1, 2].map(i => `
+      <div style="margin-bottom:12px">
+        <label style="font-size:13px;color:var(--texto-suave);display:block;margin-bottom:4px">Presentación ${i + 1}</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="url" id="slide-inp-${t}-${i}" class="form-control" placeholder="https://..."
+                 value="${urls[i] || ''}" style="font-size:13px;flex:1">
+          ${urls[i] ? `<a href="${urls[i]}" target="_blank" class="btn btn-outline btn-sm" style="white-space:nowrap">↗ Probar</a>` : ''}
+        </div>
+      </div>`).join('');
     return `
     <div style="background:var(--gris);border-radius:var(--radio);padding:20px;margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <strong style="color:var(--azul);font-size:16px">${t} — ${TEST_NOMBRE[t]}</strong>
-        ${url ? '<span class="badge badge-activo">URL guardada</span>' : '<span class="badge badge-pendiente">Sin URL</span>'}
+        ${tiene ? '<span class="badge badge-activo">Con materiales</span>' : '<span class="badge badge-pendiente">Sin materiales</span>'}
       </div>
-      <div class="form-group" style="margin-bottom:10px">
-        <label style="font-size:13px;color:var(--texto-suave)">URL del archivo PPT</label>
-        <input type="url" id="slide-inp-${t}" class="form-control" placeholder="https://..."
-               value="${url}" style="font-size:13px">
-      </div>
-      ${url ? `<div style="margin-bottom:10px"><a href="${url}" target="_blank" class="btn btn-outline btn-sm">↗ Probar enlace</a></div>` : ''}
-      <button class="btn btn-secondary btn-sm" onclick="guardarSlide('${t}')">Guardar URL</button>
-      ${url ? `<button class="btn btn-danger btn-sm" style="margin-left:8px" onclick="quitarSlide('${t}')">Quitar</button>` : ''}
+      ${inputs}
+      <button class="btn btn-secondary btn-sm" onclick="guardarSlide('${t}')">Guardar</button>
+      ${tiene ? `<button class="btn btn-danger btn-sm" style="margin-left:8px" onclick="quitarSlide('${t}')">Limpiar todo</button>` : ''}
     </div>`;
   }).join('');
 }
 function guardarSlide(t) {
-  const url = document.getElementById(`slide-inp-${t}`).value.trim();
-  st = cargar(); st.slides = st.slides || {}; st.slides[t] = url; guardar(st); renderMateriales();
+  const urls = [0, 1, 2].map(i => document.getElementById(`slide-inp-${t}-${i}`).value.trim());
+  st = cargar(); st.slides = st.slides || {}; st.slides[t] = urls; guardar(st); renderMateriales();
 }
 function quitarSlide(t) {
-  st = cargar(); st.slides = st.slides || {}; st.slides[t] = ''; guardar(st); renderMateriales();
+  st = cargar(); st.slides = st.slides || {}; st.slides[t] = ['', '', '']; guardar(st); renderMateriales();
 }
 
 // ============================================================
