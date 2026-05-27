@@ -627,6 +627,7 @@ const TEST_FECHA  = { E1:'26 may 2026', E2:'02 jun 2026', E3:'09 jun 2026', E4:'
 const NOTA_MIN    = 7.0;
 const N_PREGS     = 10;
 const TIEMPO_SEG  = 60 * 60;
+const MAX_INTENTOS = 3;
 
 // ============================================================
 // ESTADO (localStorage)
@@ -671,7 +672,7 @@ let st = cargar();
 let ses = {
   test: null, cedula: null, nombre: null,
   resps: new Array(N_PREGS).fill(null),
-  idx: 0, timer: null, segs: TIEMPO_SEG
+  idx: 0, timer: null, segs: TIEMPO_SEG, intento: 1
 };
 
 // ============================================================
@@ -752,7 +753,7 @@ function iniciarTest() {
   const sa  = document.getElementById('inp-sapellido').value.trim();
 
   if (!/^\d{10}$/.test(ced)) { return mostrarErr('cedula-err', 'Ingrese un número de cédula válido (10 dígitos).'); }
-  if (ced === ADMIN_CED)      { return mostrarErr('acceso-err', 'Esta cédula no corresponde a un participante.'); }
+  if (ced === ADMIN_CED)      { return mostrarErr('acceso-err', 'La cédula de administrador no puede usarse para rendir evaluaciones.'); }
   if (!pn)  { return mostrarErr('acceso-err', 'Ingrese su primer nombre.'); }
   if (!pa)  { return mostrarErr('acceso-err', 'Ingrese su primer apellido.'); }
 
@@ -767,9 +768,13 @@ function iniciarTest() {
     guardar(st);
   }
 
-  const yaRindio = st.resultados.find(r => r.cedula === ced && r.test === ses.test);
-  if (yaRindio) { return mostrarErr('acceso-err', `Ya rindió esta evaluación. Su nota fue ${yaRindio.nota.toFixed(1)}/10.`); }
+  const intentosPrev = st.resultados.filter(r => r.cedula === ced && r.test === ses.test);
+  if (intentosPrev.length >= MAX_INTENTOS) {
+    const mejor = Math.max(...intentosPrev.map(r => r.nota));
+    return mostrarErr('acceso-err', `Ya utilizó los ${MAX_INTENTOS} intentos permitidos. Su mejor nota fue ${mejor.toFixed(1)}/10.`);
+  }
 
+  ses.intento = intentosPrev.length + 1;
   ses.cedula = ced; ses.nombre = part.nombre;
   ses.resps = new Array(N_PREGS).fill(null); ses.idx = 0; ses.segs = TIEMPO_SEG;
   renderTest();
@@ -799,7 +804,7 @@ function validarAcceso() {
 // TEST
 // ============================================================
 function renderTest() {
-  document.getElementById('test-titulo-bar').textContent = `${ses.test} — ${TEST_NOMBRE[ses.test]}`;
+  document.getElementById('test-titulo-bar').textContent = `${ses.test} — ${TEST_NOMBRE[ses.test]}  ·  Intento ${ses.intento} de ${MAX_INTENTOS}`;
   renderDots(); renderPreg(ses.idx); updateProg();
 }
 function renderDots() {
@@ -852,7 +857,7 @@ function finalizarTest() {
     return { pregunta: p.pregunta, resp: r, correcta: c, bien };
   });
   const nota = parseFloat(((ok / N_PREGS) * 10).toFixed(2));
-  const resultado = { cedula: ses.cedula, nombre: ses.nombre, test: ses.test, nota, ok, det, fecha: new Date().toLocaleString('es-EC') };
+  const resultado = { cedula: ses.cedula, nombre: ses.nombre, test: ses.test, nota, ok, det, intento: ses.intento, fecha: new Date().toLocaleString('es-EC') };
   st = cargar(); st.resultados.push(resultado); guardar(st);
   renderResultado(resultado); mostrar('view-resultado');
 }
@@ -860,7 +865,7 @@ function renderResultado(r) {
   const aprob = r.nota >= NOTA_MIN;
   document.getElementById('res-score').innerHTML = `
     <div style="font-size:14px;color:var(--texto-suave);margin-bottom:4px">${r.nombre} &nbsp;·&nbsp; Cédula: ${r.cedula}</div>
-    <div style="font-size:14px;color:var(--texto-suave);margin-bottom:16px">${r.test} — ${TEST_NOMBRE[r.test]}</div>
+    <div style="font-size:14px;color:var(--texto-suave);margin-bottom:16px">${r.test} — ${TEST_NOMBRE[r.test]} &nbsp;·&nbsp; Intento ${r.intento || 1} de ${MAX_INTENTOS}</div>
     <div class="res-num">${r.nota.toFixed(1)}</div>
     <div class="res-sub">de 10.0 &nbsp;·&nbsp; ${r.ok} de ${N_PREGS} correctas</div>
     <span class="badge badge-xl ${aprob ? 'badge-activo' : 'badge-cerrado'}">${aprob ? '✓ APROBADO' : '✗ REPROBADO'}</span>
@@ -1014,7 +1019,7 @@ function renderTabla() {
     return;
   }
   const rows = st.participantes.map(p => {
-    const notas  = TESTS.map(t => { const r = st.resultados.find(r => r.cedula===p.cedula && r.test===t); return r ? r.nota : null; });
+    const notas  = TESTS.map(t => mejorNota(p.cedula, t));
     const asist  = st.asistencia[p.cedula] || [];
     const asistN = asist.filter(Boolean).length;
     const proy   = st.proyectos[p.cedula] || false;
@@ -1052,10 +1057,14 @@ function setProy(ced, v) { st = cargar(); st.proyectos[ced] = (v==='si'); guarda
 // ============================================================
 // ADMIN — ELEGIBLES
 // ============================================================
+function mejorNota(ced, t) {
+  const intentos = st.resultados.filter(r => r.cedula === ced && r.test === t);
+  return intentos.length ? Math.max(...intentos.map(r => r.nota)) : null;
+}
 function esEleg(ced) {
   const asist = (st.asistencia[ced] || []).filter(Boolean).length;
   if (asist < 4) return false;
-  if (!TESTS.every(t => { const r = st.resultados.find(r => r.cedula===ced && r.test===t); return r && r.nota >= NOTA_MIN; })) return false;
+  if (!TESTS.every(t => { const n = mejorNota(ced, t); return n !== null && n >= NOTA_MIN; })) return false;
   return st.proyectos[ced] || false;
 }
 function calcElegibles() { return st.participantes.filter(p => esEleg(p.cedula)); }
@@ -1066,7 +1075,7 @@ function renderElegibles() {
     return;
   }
   const rows = eleg.map((p, i) => {
-    const notas = TESTS.map(t => { const r = st.resultados.find(r => r.cedula===p.cedula && r.test===t); return r ? r.nota.toFixed(1) : '—'; });
+    const notas = TESTS.map(t => { const n = mejorNota(p.cedula, t); return n !== null ? n.toFixed(1) : '—'; });
     const asistN = (st.asistencia[p.cedula] || []).filter(Boolean).length;
     return `<tr>
       <td>${i+1}</td><td>${p.cedula}</td><td>${p.nombre}</td>
@@ -1235,7 +1244,7 @@ function exportarCompletos() {
   if (!st.resultados.length) { alert('No hay resultados para exportar.'); return; }
   exportXL(st.resultados.map(r => ({
     'Cédula': r.cedula, 'Nombre': r.nombre, 'Evaluación': r.test,
-    'Nota': r.nota, 'Correctas': r.ok, 'Total': N_PREGS,
+    'Intento': r.intento || 1, 'Nota': r.nota, 'Correctas': r.ok, 'Total': N_PREGS,
     'Resultado': r.nota >= NOTA_MIN ? 'APROBADO' : 'REPROBADO', 'Fecha': r.fecha
   })), 'resultados_completos.xlsx');
 }
