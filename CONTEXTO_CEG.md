@@ -161,7 +161,30 @@ CEG/
 - Validación de cédula en tiempo real: bloquea si no son exactamente 10 dígitos numéricos
 - Agregada "Guía de archivos" desplegable en Dashboard admin con instrucciones de formato y nombres de archivo
 - Actualizado CONTEXTO_CEG.md: tests cambiados a 10 preguntas
-- **Próximo paso:** cargar preguntas reales desde los archivos Excel del banco de preguntas y probar flujo completo con participantes reales
+- Repositorio GitHub creado (público): joselmatias/plataforma-evaluaciones-ceg
+- Creado app.py para despliegue en Streamlit Cloud
+- Desplegado en Streamlit Cloud (plataforma-evaluaciones-ceg.streamlit.app)
+
+### Sesión 4 — 2026-05-26
+- E1 ahora arranca como 'activo' por defecto (sin necesidad de acción del admin)
+- Estado inicial incluye 10 preguntas demo para E1 (visible en Streamlit Cloud en navegadores frescos)
+- Pantalla de acceso al test rediseñada: cédula + primer nombre + segundo nombre + primer apellido + segundo apellido
+- Botón "Iniciar evaluación" bloqueado hasta que la cédula tenga exactamente 10 dígitos
+- Validación en tiempo real: "Faltan X dígito(s)" si cédula < 10; bloquea si no son dígitos
+- Auto-registro: si el participante no está en el sistema, se registra automáticamente con los datos ingresados
+
+### Sesión 5 — 2026-05-27
+- Corregido: preguntas demo visibles en otros dispositivos — las 10 preguntas reales de E1 se leyeron de Banco_Preguntas_Modulo1.xlsx y se hardcodearon en `defaultPreguntas()`
+- `migrateState()` detecta preguntas demo y las reemplaza automáticamente en cualquier dispositivo
+- Agregado sistema de PPTs: admin puede cargar hasta 3 URLs por módulo desde el panel → Materiales
+- `normalizarSlides()` y `defaultSlides()` gestionan hasta 3 URLs por módulo
+
+### Sesión 6 — 2026-05-28
+- Corregido: botones de presentaciones no aparecían en otros dispositivos (mismo root cause que preguntas — localStorage es por navegador)
+- Agregada función `defaultSlides()` con las 3 URLs reales de E1 hardcodeadas en el HTML
+- `cargar()` usa `defaultSlides()` como fallback cuando `ceg_slides` está vacío
+- `migrateState()` detecta si un dispositivo no tiene URLs de E1 y las aplica automáticamente
+- **Próximo paso:** cuando el admin tenga las URLs de presentaciones de E2, E3, E4, agregarlas en `defaultSlides()` con el mismo patrón
 
 ---
 > **INSTRUCCIÓN PARA CLAUDE:** Al final de cada sesión de trabajo, añadir una entrada en "Registro de Sesiones de Desarrollo" con la fecha, lo que se hizo y el próximo paso pendiente.
