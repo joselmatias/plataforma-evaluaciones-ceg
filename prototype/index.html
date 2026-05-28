@@ -666,6 +666,18 @@ function defaultPreguntas() {
     E2: [], E3: [], E4: []
   };
 }
+function defaultSlides() {
+  return {
+    E1: [
+      'https://docs.google.com/presentation/d/1Vto5eX-9me-Gfp4ax51Oc--WRz5Y2a5f/edit?usp=sharing&ouid=116888818253442473724&rtpof=true&sd=true',
+      'https://docs.google.com/presentation/d/1OyvHbFoZdCh_ZnzrYcdqjFZSEt2nJAfy/edit?usp=sharing&ouid=116888818253442473724&rtpof=true&sd=true',
+      'https://docs.google.com/presentation/d/1qAEMXAO_rYQGBYbkCGhlsABN0WLoD81N/edit?usp=sharing&ouid=116888818253442473724&rtpof=true&sd=true'
+    ],
+    E2: ['', '', ''],
+    E3: ['', '', ''],
+    E4: ['', '', '']
+  };
+}
 function cargar() {
   const storedPregs = localStorage.getItem('ceg_pregs');
   return {
@@ -675,7 +687,7 @@ function cargar() {
     resultados:    JSON.parse(localStorage.getItem('ceg_res') || '[]'),
     asistencia:    JSON.parse(localStorage.getItem('ceg_asist') || '{}'),
     proyectos:     JSON.parse(localStorage.getItem('ceg_proy') || '{}'),
-    slides:        normalizarSlides(JSON.parse(localStorage.getItem('ceg_slides') || '{}'))
+    slides:        normalizarSlides(JSON.parse(localStorage.getItem('ceg_slides') || 'null') || defaultSlides())
   };
 }
 function normalizarSlides(raw) {
@@ -1479,6 +1491,16 @@ function migrateState() {
       pq.E1 = defaultPreguntas().E1;
       localStorage.setItem('ceg_pregs', JSON.stringify(pq));
     }
+  }
+  const slRaw = localStorage.getItem('ceg_slides');
+  const sl = slRaw ? JSON.parse(slRaw) : null;
+  if (!sl || !sl.E1 || !sl.E1.some(u => u)) {
+    const defSl = defaultSlides();
+    const merged = sl ? JSON.parse(JSON.stringify(sl)) : {E1:['','',''],E2:['','',''],E3:['','',''],E4:['','','']};
+    ['E1','E2','E3','E4'].forEach(t => {
+      if (!merged[t] || !merged[t].some(u => u)) merged[t] = defSl[t];
+    });
+    localStorage.setItem('ceg_slides', JSON.stringify(merged));
   }
 }
 
