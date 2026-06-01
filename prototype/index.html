@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Plataforma de Evaluaciones — SCE + CEG</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --azul: #003366;
@@ -647,6 +648,43 @@ const TIEMPO_SEG  = 60 * 60;
 const MAX_INTENTOS = 3;
 
 // ============================================================
+// SUPABASE — respaldo compartido de RESULTADOS entre dispositivos
+// Pega aquí tu Project URL y anon public key (Supabase → Settings → API).
+// ============================================================
+const SUPABASE_URL      = "https://lzgwqrmqywtiyezjzzdd.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_8U-EgCnn2o2f989AID648w_O6pbW8CW";
+const sb = (window.supabase && SUPABASE_URL.indexOf("TU_PROYECTO") === -1)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;   // si no está configurado, la app sigue funcionando solo con localStorage
+
+async function subirResultado(r) {
+  if (!sb) return;
+  try {
+    await sb.from('ceg_resultados').insert({
+      cedula: r.cedula, nombre: r.nombre, test: r.test, nota: r.nota,
+      ok: r.ok, det: r.det, intento: r.intento, fecha: r.fecha
+    });
+  } catch (e) { console.warn('No se pudo subir a Supabase:', e); }
+}
+
+async function sincronizarResultados() {
+  if (!sb) return;
+  try {
+    const { data, error } = await sb.from('ceg_resultados')
+      .select('*').order('created_at', { ascending: true });
+    if (error) throw error;
+    if (data) {
+      st = cargar();
+      st.resultados = data.map(d => ({
+        cedula: d.cedula, nombre: d.nombre, test: d.test, nota: d.nota,
+        ok: d.ok, det: d.det, intento: d.intento, fecha: d.fecha
+      }));
+      guardar(st);
+    }
+  } catch (e) { console.warn('No se pudo sincronizar con Supabase:', e); }
+}
+
+// ============================================================
 // ESTADO (localStorage)
 // ============================================================
 function defaultPreguntas() {
@@ -906,6 +944,7 @@ function finalizarTest() {
   const nota = parseFloat(((ok / N_PREGS) * 10).toFixed(2));
   const resultado = { cedula: ses.cedula, nombre: ses.nombre, test: ses.test, nota, ok, det, intento: ses.intento, fecha: new Date().toLocaleString('es-EC') };
   st = cargar(); st.resultados.push(resultado); guardar(st);
+  subirResultado(resultado);   // respaldo compartido en Supabase (no bloquea la UI)
   renderResultado(resultado); mostrar('view-resultado');
 }
 function renderResultado(r) {
@@ -955,10 +994,11 @@ function actualizarTimer() {
 // ============================================================
 // ADMIN — LOGIN
 // ============================================================
-function loginAdmin() {
+async function loginAdmin() {
   const ced = document.getElementById('admin-inp').value.trim();
   if (ced !== ADMIN_CED) { document.getElementById('admin-err').style.display = 'block'; return; }
   document.getElementById('admin-err').style.display = 'none';
+  await sincronizarResultados();   // trae los resultados de TODOS los dispositivos
   st = cargar();
   renderDashboard(); mostrar('view-admin');
 }
