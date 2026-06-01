@@ -1101,12 +1101,24 @@ function renderEstadisticas() {
 // ============================================================
 // ADMIN — TABLA CONSOLIDADA
 // ============================================================
+function participantesParaTabla() {
+  // Si hay lista de participantes cargada, usarla; si no, derivarla de los
+  // resultados (cédula + nombre de quienes ya rindieron), que sí se comparten
+  // entre dispositivos vía Supabase.
+  if (st.participantes && st.participantes.length) return st.participantes;
+  const map = {};
+  st.resultados.forEach(r => {
+    if (r.cedula && !map[r.cedula]) map[r.cedula] = { cedula: r.cedula, nombre: r.nombre || '' };
+  });
+  return Object.values(map).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+}
 function renderTabla() {
-  if (!st.participantes.length) {
-    document.getElementById('tabla-content').innerHTML = `<div class="empty"><div class="empty-icon">👥</div><p>No hay participantes cargados.</p></div>`;
+  const lista = participantesParaTabla();
+  if (!lista.length) {
+    document.getElementById('tabla-content').innerHTML = `<div class="empty"><div class="empty-icon">👥</div><p>No hay participantes ni evaluaciones rendidas aún.</p></div>`;
     return;
   }
-  const rows = st.participantes.map(p => {
+  const rows = lista.map(p => {
     const notas  = TESTS.map(t => mejorNota(p.cedula, t));
     const asist  = st.asistencia[p.cedula] || [];
     const asistN = asist.filter(Boolean).length;
