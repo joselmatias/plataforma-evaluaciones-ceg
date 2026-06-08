@@ -1102,11 +1102,13 @@ function renderEstadisticas() {
 // ADMIN — TABLA CONSOLIDADA
 // ============================================================
 function participantesParaTabla() {
-  // Si hay lista de participantes cargada, usarla; si no, derivarla de los
-  // resultados (cédula + nombre de quienes ya rindieron), que sí se comparten
-  // entre dispositivos vía Supabase.
-  if (st.participantes && st.participantes.length) return st.participantes;
+  // Combina la lista de participantes cargada localmente con quienes ya
+  // rindieron (cédula + nombre desde los resultados sincronizados de Supabase),
+  // para que la tabla muestre a TODOS sin importar el dispositivo.
   const map = {};
+  (st.participantes || []).forEach(p => {
+    if (p.cedula) map[p.cedula] = { cedula: p.cedula, nombre: p.nombre || '' };
+  });
   st.resultados.forEach(r => {
     if (r.cedula && !map[r.cedula]) map[r.cedula] = { cedula: r.cedula, nombre: r.nombre || '' };
   });
