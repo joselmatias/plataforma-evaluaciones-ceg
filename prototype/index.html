@@ -701,7 +701,19 @@ function defaultPreguntas() {
       { pregunta: "¿Cuál de estas herramientas de IA fue desarrollada por Google?", A: "ChatGPT", B: "Claude", C: "Gemini", D: "Quillbot", respuesta: "C" },
       { pregunta: "¿Cuál es la diferencia principal entre ChatGPT y Perplexity?", A: "ChatGPT solo funciona en inglés, Perplexity solo en español", B: "Perplexity es una IA china y ChatGPT es europea", C: "Perplexity actúa como motor de búsqueda que cita fuentes reales; ChatGPT genera respuestas propias", D: "ChatGPT es gratuito y Perplexity siempre es de pago", respuesta: "C" }
     ],
-    E2: [], E3: [], E4: []
+    E2: [
+      { pregunta: "¿Cuál es el objeto principal de la LORCCD según su artículo 1?", A: "Regular las fusiones y adquisiciones empresariales", B: "Proteger la competencia leal y los intereses de competidores y consumidores afectados por actos desleales", C: "Fijar los precios máximos en los mercados ecuatorianos", D: "Controlar las importaciones y exportaciones del país", respuesta: "B" },
+      { pregunta: "¿Cuáles son los bienes jurídicos que protege la LORCCD?", A: "El empleo, la producción nacional y las exportaciones", B: "Los tributos, las patentes y los derechos de autor", C: "La competencia leal, la eficiencia económica y el bienestar de usuarios y consumidores", D: "Las inversiones extranjeras y los contratos públicos", respuesta: "C" },
+      { pregunta: "¿Cuándo tiene competencia la SCE para conocer y sancionar prácticas desleales?", A: "Cuando la conducta afecta únicamente a dos empresas del mismo sector", B: "Cuando hay afectación al interés general o falseamiento al régimen de competencia", C: "Solo cuando la conducta ocurre en mercados internacionales", D: "Cuando el valor del daño supera los 100.000 dólares", respuesta: "B" },
+      { pregunta: "Según la LORCCD, ¿qué se considera competencia desleal?", A: "Todo acto que busque aumentar la participación de mercado de una empresa", B: "Cualquier estrategia de precios bajos orientada a captar más clientes", C: "Todo acto contrario a la buena fe que pueda limitar, restringir o distorsionar la competencia y resultar perjudicial para el interés económico general", D: "La publicidad comparativa entre empresas del mismo sector", respuesta: "C" },
+      { pregunta: "¿Cuál de los siguientes es un principio de la LORCCD?", A: "Principio de rentabilidad empresarial", B: "Principio de buena fe", C: "Principio de libre fijación de precios", D: "Principio de exclusividad de marca", respuesta: "B" },
+      { pregunta: "¿Cuáles son las tres prácticas desleales más denunciadas ante la SCE?", A: "Actos de monopolio, actos de cartel y actos de fusión", B: "Actos de engaño, actos de imitación y actos de confusión", C: "Actos de dumping, actos de espionaje y actos de piratería", D: "Actos de publicidad, actos de promoción y actos de descuento", respuesta: "B" },
+      { pregunta: "¿Cuándo se configura la violación de secretos empresariales como práctica desleal?", A: "Cuando una empresa lanza un producto similar al de su competidor", B: "Cuando una empresa cobra precios más bajos que la competencia", C: "Cuando se divulga o explota sin autorización un secreto industrial al que se tuvo acceso legítimo pero con deber de reserva", D: "Cuando dos empresas comparten información en una feria comercial", respuesta: "C" },
+      { pregunta: "¿Cuál de las siguientes es una conducta nueva incluida en la LORCCD?", A: "Actos de publicidad engañosa", B: "Actos de imitación de productos", C: "Abuso en posición de dependencia económica", D: "Violación de secretos empresariales", respuesta: "C" },
+      { pregunta: "¿Cuál es la sanción máxima para conductas desleales agravadas según la LORCCD?", A: "Hasta el 5% de los ingresos brutos", B: "Hasta el 8% de los ingresos brutos", C: "Hasta el 10% de los ingresos brutos", D: "Hasta el 12% de los ingresos brutos", respuesta: "D" },
+      { pregunta: "¿Qué autoridad conoce los asuntos de propiedad intelectual entre pares cuando NO existe afectación al interés general ni al bienestar del consumidor?", A: "La Superintendencia de Competencia Económica (SCE)", B: "La Fiscalía General del Estado", C: "La autoridad nacional competente en materia de propiedad intelectual", D: "Los jueces de lo penal", respuesta: "C" }
+    ],
+    E3: [], E4: []
   };
 }
 function defaultSlides() {
@@ -721,7 +733,7 @@ function cargar() {
   return {
     participantes: JSON.parse(localStorage.getItem('ceg_part') || '[]'),
     preguntas:     storedPregs ? JSON.parse(storedPregs) : defaultPreguntas(),
-    tests_estado:  JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"pendiente","E3":"pendiente","E4":"pendiente"}'),
+    tests_estado:  JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"pendiente","E4":"pendiente"}'),
     resultados:    JSON.parse(localStorage.getItem('ceg_res') || '[]'),
     asistencia:    JSON.parse(localStorage.getItem('ceg_asist') || '{}'),
     proyectos:     JSON.parse(localStorage.getItem('ceg_proy') || '{}'),
@@ -1531,20 +1543,25 @@ function migrateState() {
   const tsRaw = localStorage.getItem('ceg_tstate');
   if (tsRaw) {
     const ts = JSON.parse(tsRaw);
-    if (ts.E1 === 'pendiente') {
-      ts.E1 = 'activo';
-      localStorage.setItem('ceg_tstate', JSON.stringify(ts));
-    }
+    let changed = false;
+    if (ts.E1 === 'pendiente') { ts.E1 = 'activo'; changed = true; }
+    if (ts.E2 === 'pendiente') { ts.E2 = 'activo'; changed = true; }
+    if (changed) localStorage.setItem('ceg_tstate', JSON.stringify(ts));
   }
   const tsActual = JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo"}');
   const pqRaw    = localStorage.getItem('ceg_pregs');
-  if (tsActual.E1 === 'activo') {
+  const defPQ = defaultPreguntas();
+  if (tsActual.E1 === 'activo' || tsActual.E2 === 'activo') {
     const pq = pqRaw ? JSON.parse(pqRaw) : {E1:[],E2:[],E3:[],E4:[]};
+    let pqChanged = false;
     const esDemo = pq.E1 && pq.E1.length > 0 && pq.E1[0].pregunta.startsWith('Pregunta de evaluación');
-    if (!pq.E1 || pq.E1.length < N_PREGS || esDemo) {
-      pq.E1 = defaultPreguntas().E1;
-      localStorage.setItem('ceg_pregs', JSON.stringify(pq));
+    if (tsActual.E1 === 'activo' && (!pq.E1 || pq.E1.length < N_PREGS || esDemo)) {
+      pq.E1 = defPQ.E1; pqChanged = true;
     }
+    if (tsActual.E2 === 'activo' && (!pq.E2 || pq.E2.length < N_PREGS)) {
+      pq.E2 = defPQ.E2; pqChanged = true;
+    }
+    if (pqChanged) localStorage.setItem('ceg_pregs', JSON.stringify(pq));
   }
   const slRaw = localStorage.getItem('ceg_slides');
   const sl = slRaw ? JSON.parse(slRaw) : null;
