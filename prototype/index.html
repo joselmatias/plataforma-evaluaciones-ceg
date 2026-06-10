@@ -452,7 +452,10 @@
 
         <!-- DASHBOARD -->
         <div id="adm-dashboard" class="adm-sec active">
-          <h2>Dashboard</h2>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+            <h2 style="margin:0">Dashboard</h2>
+            <button class="btn btn-sm btn-outline" onclick="refrescarDatos()">🔄 Actualizar resultados</button>
+          </div>
           <div class="demo-box">
             <p>💡 <strong>Datos de demostración:</strong> Cargue participantes y preguntas reales desde las secciones del menú, o use los datos demo para probar el sistema.</p>
             <button class="btn btn-sm btn-outline" onclick="cargarDemoData()">Cargar datos de demostración</button>
@@ -1019,7 +1022,7 @@ function logoutAdmin() { irPortal(); }
 // ============================================================
 // ADMIN — NAVEGACIÓN
 // ============================================================
-function adminNav(el, secId) {
+async function adminNav(el, secId) {
   document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
   document.querySelectorAll('.adm-sec').forEach(s => s.classList.remove('active'));
@@ -1029,7 +1032,18 @@ function adminNav(el, secId) {
     'adm-tabla': renderTabla, 'adm-elegibles': renderElegibles,
     'adm-tests': renderTestsGest, 'adm-participantes': renderPart, 'adm-preguntas': renderPregsAdmin,
     'adm-materiales': renderMateriales };
-  if (fn[secId]) fn[secId]();
+  if (fn[secId]) fn[secId]();                       // render inmediato (cache)
+  // Secciones que dependen de resultados: re-sincronizar desde Supabase
+  if (['adm-dashboard','adm-estadisticas','adm-tabla','adm-elegibles'].includes(secId)) {
+    await sincronizarResultados();                  // trae lo último de Supabase
+    st = cargar();
+    if (fn[secId]) fn[secId]();                      // re-render con datos frescos
+  }
+}
+async function refrescarDatos() {
+  await sincronizarResultados();
+  st = cargar();
+  renderDashboard();
 }
 
 // ============================================================
