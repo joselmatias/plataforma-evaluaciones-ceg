@@ -1548,7 +1548,7 @@ function migrateState() {
     if (ts.E2 === 'pendiente') { ts.E2 = 'activo'; changed = true; }
     if (changed) localStorage.setItem('ceg_tstate', JSON.stringify(ts));
   }
-  const tsActual = JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo"}');
+  const tsActual = JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"pendiente","E4":"pendiente"}');
   const pqRaw    = localStorage.getItem('ceg_pregs');
   const defPQ = defaultPreguntas();
   if (tsActual.E1 === 'activo' || tsActual.E2 === 'activo') {
