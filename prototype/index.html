@@ -726,10 +726,22 @@ function defaultSlides() {
       'https://docs.google.com/presentation/d/1OyvHbFoZdCh_ZnzrYcdqjFZSEt2nJAfy/edit?usp=sharing&ouid=116888818253442473724&rtpof=true&sd=true',
       'https://docs.google.com/presentation/d/1qAEMXAO_rYQGBYbkCGhlsABN0WLoD81N/edit?usp=sharing&ouid=116888818253442473724&rtpof=true&sd=true'
     ],
-    E2: ['', '', ''],
+    E2: [
+      'https://docs.google.com/presentation/d/1yqvT-7-q219ndHsm2-AAWRef6GHrW9pQ/edit?slide=id.p1#slide=id.p1',
+      'https://docs.google.com/presentation/d/1EQ_krK_8M610MVMUE_aoSxG89AYb80ia/edit?slide=id.p1#slide=id.p1',
+      ''
+    ],
     E3: ['', '', ''],
     E4: ['', '', '']
   };
+}
+function defaultVideos() {
+  return { E1: '', E2: '', E3: '', E4: '' };
+}
+function normalizarVideos(raw) {
+  const r = {};
+  TESTS.forEach(t => { r[t] = (raw && typeof raw[t] === 'string') ? raw[t] : ''; });
+  return r;
 }
 function cargar() {
   const storedPregs = localStorage.getItem('ceg_pregs');
@@ -740,7 +752,8 @@ function cargar() {
     resultados:    JSON.parse(localStorage.getItem('ceg_res') || '[]'),
     asistencia:    JSON.parse(localStorage.getItem('ceg_asist') || '{}'),
     proyectos:     JSON.parse(localStorage.getItem('ceg_proy') || '{}'),
-    slides:        normalizarSlides(JSON.parse(localStorage.getItem('ceg_slides') || 'null') || defaultSlides())
+    slides:        normalizarSlides(JSON.parse(localStorage.getItem('ceg_slides') || 'null') || defaultSlides()),
+    videos:        normalizarVideos(JSON.parse(localStorage.getItem('ceg_videos') || 'null') || defaultVideos())
   };
 }
 function normalizarSlides(raw) {
@@ -759,6 +772,7 @@ function guardar(s) {
   localStorage.setItem('ceg_asist',  JSON.stringify(s.asistencia));
   localStorage.setItem('ceg_proy',   JSON.stringify(s.proyectos));
   localStorage.setItem('ceg_slides', JSON.stringify(s.slides));
+  localStorage.setItem('ceg_videos', JSON.stringify(s.videos));
 }
 let st = cargar();
 
@@ -810,6 +824,10 @@ function renderPortal() {
     const btnSlide = slideUrls.map((url, i) =>
       `<a href="${url}" target="_blank" class="btn btn-outline btn-sm btn-block" style="margin-top:8px">⬇ Presentación ${i + 1}</a>`
     ).join('');
+    const videoUrl = (st.videos || {})[t] || '';
+    const btnVideo = videoUrl
+      ? `<a href="${videoUrl}" target="_blank" class="btn btn-outline btn-sm btn-block" style="margin-top:8px">🎬 Ver / Descargar video</a>`
+      : '';
     return `
       <div class="test-card">
         <div class="tc-head">
@@ -822,7 +840,7 @@ function renderPortal() {
           <div class="tc-sub">📝 10 preguntas &nbsp;·&nbsp; ⏱ 60 minutos</div>
           <span class="badge ${badge}">${badgeTxt}</span>
         </div>
-        <div class="tc-foot">${btn}${btnSlide}</div>
+        <div class="tc-foot">${btn}${btnSlide}${btnVideo}</div>
       </div>`;
   }).join('');
 }
@@ -1494,7 +1512,8 @@ function registrarParticipante() {
 function renderMateriales() {
   document.getElementById('materiales-form').innerHTML = TESTS.map(t => {
     const urls = ((st.slides || {})[t] || ['', '', '']);
-    const tiene = urls.some(u => u);
+    const videoUrl = (st.videos || {})[t] || '';
+    const tiene = urls.some(u => u) || !!videoUrl;
     const inputs = [0, 1, 2].map(i => `
       <div style="margin-bottom:12px">
         <label style="font-size:13px;color:var(--texto-suave);display:block;margin-bottom:4px">Presentación ${i + 1}</label>
@@ -1511,6 +1530,14 @@ function renderMateriales() {
         ${tiene ? '<span class="badge badge-activo">Con materiales</span>' : '<span class="badge badge-pendiente">Sin materiales</span>'}
       </div>
       ${inputs}
+      <div style="margin-bottom:12px">
+        <label style="font-size:13px;color:var(--texto-suave);display:block;margin-bottom:4px">Video (ver/descargar)</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="url" id="video-inp-${t}" class="form-control" placeholder="https://..."
+                 value="${videoUrl}" style="font-size:13px;flex:1">
+          ${videoUrl ? `<a href="${videoUrl}" target="_blank" class="btn btn-outline btn-sm" style="white-space:nowrap">↗ Probar</a>` : ''}
+        </div>
+      </div>
       <button class="btn btn-secondary btn-sm" onclick="guardarSlide('${t}')">Guardar</button>
       ${tiene ? `<button class="btn btn-danger btn-sm" style="margin-left:8px" onclick="quitarSlide('${t}')">Limpiar todo</button>` : ''}
     </div>`;
@@ -1518,10 +1545,17 @@ function renderMateriales() {
 }
 function guardarSlide(t) {
   const urls = [0, 1, 2].map(i => document.getElementById(`slide-inp-${t}-${i}`).value.trim());
-  st = cargar(); st.slides = st.slides || {}; st.slides[t] = urls; guardar(st); renderMateriales();
+  const video = document.getElementById(`video-inp-${t}`).value.trim();
+  st = cargar();
+  st.slides = st.slides || {}; st.slides[t] = urls;
+  st.videos = st.videos || {}; st.videos[t] = video;
+  guardar(st); renderMateriales();
 }
 function quitarSlide(t) {
-  st = cargar(); st.slides = st.slides || {}; st.slides[t] = ['', '', '']; guardar(st); renderMateriales();
+  st = cargar();
+  st.slides = st.slides || {}; st.slides[t] = ['', '', ''];
+  st.videos = st.videos || {}; st.videos[t] = '';
+  guardar(st); renderMateriales();
 }
 
 // ============================================================
@@ -1579,14 +1613,23 @@ function migrateState() {
   }
   const slRaw = localStorage.getItem('ceg_slides');
   const sl = slRaw ? JSON.parse(slRaw) : null;
-  if (!sl || !sl.E1 || !sl.E1.some(u => u)) {
-    const defSl = defaultSlides();
-    const merged = sl ? JSON.parse(JSON.stringify(sl)) : {E1:['','',''],E2:['','',''],E3:['','',''],E4:['','','']};
-    ['E1','E2','E3','E4'].forEach(t => {
-      if (!merged[t] || !merged[t].some(u => u)) merged[t] = defSl[t];
-    });
-    localStorage.setItem('ceg_slides', JSON.stringify(merged));
-  }
+  const defSl = defaultSlides();
+  const merged = sl ? JSON.parse(JSON.stringify(sl)) : {E1:['','',''],E2:['','',''],E3:['','',''],E4:['','','']};
+  let slChanged = !sl;
+  ['E1','E2','E3','E4'].forEach(t => {
+    if ((!merged[t] || !merged[t].some(u => u)) && defSl[t] && defSl[t].some(u => u)) {
+      merged[t] = defSl[t]; slChanged = true;
+    }
+  });
+  if (slChanged) localStorage.setItem('ceg_slides', JSON.stringify(merged));
+
+  const vRaw = localStorage.getItem('ceg_videos');
+  const v = vRaw ? JSON.parse(vRaw) : null;
+  const defV = defaultVideos();
+  const mergedV = v ? JSON.parse(JSON.stringify(v)) : {E1:'',E2:'',E3:'',E4:''};
+  let vChanged = !v;
+  TESTS.forEach(t => { if (!mergedV[t] && defV[t]) { mergedV[t] = defV[t]; vChanged = true; } });
+  if (vChanged) localStorage.setItem('ceg_videos', JSON.stringify(mergedV));
 }
 
 // ============================================================
