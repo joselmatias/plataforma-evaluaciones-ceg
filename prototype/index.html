@@ -700,7 +700,19 @@ function defaultPreguntas() {
       { pregunta: "¿Cuál es la sanción máxima para conductas desleales agravadas según la LORCCD?", A: "Hasta el 5% de los ingresos brutos", B: "Hasta el 8% de los ingresos brutos", C: "Hasta el 10% de los ingresos brutos", D: "Hasta el 12% de los ingresos brutos", respuesta: "D" },
       { pregunta: "¿Qué autoridad conoce los asuntos de propiedad intelectual entre pares cuando NO existe afectación al interés general ni al bienestar del consumidor?", A: "La Superintendencia de Competencia Económica (SCE)", B: "La Fiscalía General del Estado", C: "La autoridad nacional competente en materia de propiedad intelectual", D: "Los jueces de lo penal", respuesta: "C" }
     ],
-    E3: [], E4: []
+    E3: [
+      { pregunta: "¿Cuál es el objeto principal de la LORCPM?", A: "Regular los precios de los bienes y servicios en el mercado ecuatoriano", B: "Evitar, prevenir, corregir, eliminar y sancionar el abuso de poder de mercado, acuerdos colusorios y concentraciones económicas que afecten la competencia y el bienestar general", C: "Controlar las importaciones y exportaciones de productos ecuatorianos", D: "Fijar las tarifas máximas que pueden cobrar las empresas de servicios públicos", respuesta: "B" },
+      { pregunta: "Según el artículo 2 de la LORCPM, ¿quiénes son considerados operadores económicos?", A: "Solo las empresas privadas con fines de lucro registradas en el Ecuador", B: "Únicamente las empresas nacionales que superan un determinado volumen de ventas", C: "Personas naturales o jurídicas, públicas o privadas, nacionales y extranjeras, con o sin fines de lucro, que realicen actividades económicas en todo o en parte del territorio nacional, así como los gremios que las agrupen", D: "Solo las empresas que cotizan en la bolsa de valores ecuatoriana", respuesta: "C" },
+      { pregunta: "Si una persona o empresa se niega a suministrar la información requerida por la SCE o entrega información incompleta, ¿cuál es la multa prevista en el artículo 79 de la LORCPM?", A: "Hasta 100 Remuneraciones Básicas Unificadas", B: "Hasta 500 Remuneraciones Básicas Unificadas", C: "Hasta 1.000 Remuneraciones Básicas Unificadas", D: "Hasta 2.000 Remuneraciones Básicas Unificadas", respuesta: "B" },
+      { pregunta: "Según el artículo 14 de la LORCPM, ¿qué se entiende por concentración económica?", A: "El aumento del capital de una empresa mediante la emisión de nuevas acciones", B: "El cambio o toma de control de una o varias empresas a través de fusiones, transferencias, adquisiciones u otros actos que otorguen control", C: "La expansión de una empresa hacia nuevos mercados geográficos mediante inversión propia", D: "El incremento en la participación de mercado por crecimiento orgánico sin adquirir otras empresas", respuesta: "B" },
+      { pregunta: "¿Qué condición activa la notificación obligatoria de una concentración económica según el artículo 16 de la LORCPM?", A: "Que la empresa tenga más de 100 empleados o ingresos superiores a $1 millón anuales", B: "Que la operación supere el volumen de negocios en RBU establecido por la JRPMF, o que la cuota de mercado sea del 30% o más del mercado relevante", C: "Que la empresa sea de capital extranjero o tenga filiales en más de tres países", D: "Que el valor de la transacción supere los $10 millones de dólares americanos", respuesta: "B" },
+      { pregunta: "Según el artículo 9 de la LORCPM, ¿cuándo existe abuso de poder de mercado?", A: "Cuando una empresa tiene más del 50% de participación en cualquier mercado del país", B: "Cuando uno o varios operadores económicos, sobre la base de su poder de mercado, por cualquier medio, afectan la competencia, la eficiencia económica o el bienestar general", C: "Cuando una empresa cobra precios superiores al promedio del sector durante más de 6 meses", D: "Cuando una empresa realiza publicidad comparativa con sus competidores directos", respuesta: "B" },
+      { pregunta: "¿Cuál de las siguientes conductas requiere la identificación previa de poder de mercado para ser sancionada?", A: "Colusión entre dos empresas competidoras para fijar precios", B: "Cartelización de un sector económico entre varios operadores", C: "Precios predatorios o exclusividad injustificada aplicados por un operador dominante", D: "Boicot colectivo organizado entre varios operadores económicos", respuesta: "C" },
+      { pregunta: "Según el artículo 11 de la LORCPM, ¿qué se entiende por acuerdo o práctica prohibida?", A: "Solo los contratos escritos con cláusulas explícitas de fijación de precios entre competidores", B: "Únicamente los acuerdos entre empresas del mismo sector que superen el 25% del mercado relevante", C: "Todo acuerdo, decisión, práctica concertada o conscientemente paralela entre dos o más operadores cuyo objeto o efecto sea o pueda ser afectar la competencia, la eficiencia económica o el bienestar general", D: "Solo los acuerdos registrados ante la Superintendencia de Compañías del Ecuador", respuesta: "C" },
+      { pregunta: "¿De qué formas puede iniciarse un procedimiento de investigación y sanción por parte de la SCE, según el artículo 53 de la LORCPM?", A: "Solo mediante denuncia presentada por el consumidor afectado directamente", B: "Únicamente de oficio por iniciativa de la propia SCE", C: "De oficio, a solicitud de otro órgano de la Administración Pública, o por denuncia de cualquier persona que demuestre un interés legítimo", D: "Solo mediante resolución del Ministerio de Producción con aprobación de la Asamblea Nacional", respuesta: "C" },
+      { pregunta: "¿Cómo se determina la multa económica por infracciones a la LORCPM según su artículo 79?", A: "Se aplica una tarifa fija en dólares establecida en la ley según el tipo de infracción", B: "Se calcula en función del número de trabajadores de la empresa infractora", C: "Es un porcentaje del volumen de negocios total del infractor en el ejercicio inmediatamente anterior al de la imposición de la multa", D: "Se determina según el daño económico probado y cuantificado causado a los consumidores", respuesta: "C" }
+    ],
+    E4: []
   };
 }
 function defaultSlides() {
@@ -735,7 +747,7 @@ function cargar() {
   return {
     participantes: JSON.parse(localStorage.getItem('ceg_part') || '[]'),
     preguntas:     storedPregs ? JSON.parse(storedPregs) : defaultPreguntas(),
-    tests_estado:  JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"pendiente","E4":"pendiente"}'),
+    tests_estado:  JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"activo","E4":"pendiente"}'),
     resultados:    JSON.parse(localStorage.getItem('ceg_res') || '[]'),
     asistencia:    JSON.parse(localStorage.getItem('ceg_asist') || '{}'),
     proyectos:     JSON.parse(localStorage.getItem('ceg_proy') || '{}'),
@@ -1525,9 +1537,10 @@ function migrateState() {
     let changed = false;
     if (ts.E1 === 'pendiente') { ts.E1 = 'activo'; changed = true; }
     if (ts.E2 === 'pendiente') { ts.E2 = 'activo'; changed = true; }
+    if (ts.E3 === 'pendiente') { ts.E3 = 'activo'; changed = true; }
     if (changed) localStorage.setItem('ceg_tstate', JSON.stringify(ts));
   }
-  const tsActual = JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"pendiente","E4":"pendiente"}');
+  const tsActual = JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"activo","E4":"pendiente"}');
   const pqRaw    = localStorage.getItem('ceg_pregs');
   const defPQ = defaultPreguntas();
   if (tsActual.E1 === 'activo' || tsActual.E2 === 'activo') {
@@ -1539,6 +1552,9 @@ function migrateState() {
     }
     if (tsActual.E2 === 'activo' && (!pq.E2 || pq.E2.length < N_PREGS)) {
       pq.E2 = defPQ.E2; pqChanged = true;
+    }
+    if (tsActual.E3 === 'activo' && (!pq.E3 || pq.E3.length < N_PREGS)) {
+      pq.E3 = defPQ.E3; pqChanged = true;
     }
     if (pqChanged) localStorage.setItem('ceg_pregs', JSON.stringify(pq));
   }
