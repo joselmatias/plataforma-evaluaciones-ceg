@@ -1580,7 +1580,7 @@ function migrateState() {
   const defV = defaultVideos();
   const mergedV = v ? JSON.parse(JSON.stringify(v)) : {E1:'',E2:'',E3:'',E4:''};
   let vChanged = !v;
-  TESTS.forEach(t => { if (!mergedV[t] && defV[t]) { mergedV[t] = defV[t]; vChanged = true; } });
+  TESTS.forEach(t => { if (defV[t] && mergedV[t] !== defV[t]) { mergedV[t] = defV[t]; vChanged = true; } });
   if (vChanged) localStorage.setItem('ceg_videos', JSON.stringify(mergedV));
 }
 
