@@ -763,7 +763,7 @@ function cargar() {
   return {
     participantes: JSON.parse(localStorage.getItem('ceg_part') || '[]'),
     preguntas:     storedPregs ? JSON.parse(storedPregs) : defaultPreguntas(),
-    tests_estado:  JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"activo","E4":"pendiente"}'),
+    tests_estado:  JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"activo","E4":"activo"}'),
     resultados:    JSON.parse(localStorage.getItem('ceg_res') || '[]'),
     asistencia:    JSON.parse(localStorage.getItem('ceg_asist') || '{}'),
     proyectos:     JSON.parse(localStorage.getItem('ceg_proy') || '{}'),
@@ -1554,9 +1554,10 @@ function migrateState() {
     if (ts.E1 === 'pendiente') { ts.E1 = 'activo'; changed = true; }
     if (ts.E2 === 'pendiente') { ts.E2 = 'activo'; changed = true; }
     if (ts.E3 === 'pendiente') { ts.E3 = 'activo'; changed = true; }
+    if (ts.E4 === 'pendiente') { ts.E4 = 'activo'; changed = true; }
     if (changed) localStorage.setItem('ceg_tstate', JSON.stringify(ts));
   }
-  const tsActual = JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"activo","E4":"pendiente"}');
+  const tsActual = JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"activo","E4":"activo"}');
   const pqRaw    = localStorage.getItem('ceg_pregs');
   const defPQ = defaultPreguntas();
   const pq = pqRaw ? JSON.parse(pqRaw) : {E1:[],E2:[],E3:[],E4:[]};
