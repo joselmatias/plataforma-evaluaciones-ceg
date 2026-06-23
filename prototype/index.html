@@ -712,7 +712,18 @@ function defaultPreguntas() {
       { pregunta: "¿De qué formas puede iniciarse un procedimiento de investigación y sanción por parte de la SCE, según el artículo 53 de la LORCPM?", A: "Solo mediante denuncia presentada por el consumidor afectado directamente", B: "Únicamente de oficio por iniciativa de la propia SCE", C: "De oficio, a solicitud de otro órgano de la Administración Pública, o por denuncia de cualquier persona que demuestre un interés legítimo", D: "Solo mediante resolución del Ministerio de Producción con aprobación de la Asamblea Nacional", respuesta: "C" },
       { pregunta: "¿Cómo se determina la multa económica por infracciones a la LORCPM según su artículo 79?", A: "Se aplica una tarifa fija en dólares establecida en la ley según el tipo de infracción", B: "Se calcula en función del número de trabajadores de la empresa infractora", C: "Es un porcentaje del volumen de negocios total del infractor en el ejercicio inmediatamente anterior al de la imposición de la multa", D: "Se determina según el daño económico probado y cuantificado causado a los consumidores", respuesta: "C" }
     ],
-    E4: []
+    E4: [
+      { pregunta: "¿Para qué sirve Google Colab?", A: "Para editar videos", B: "Para ejecutar código Python en la nube", C: "Para diseñar certificados", D: "Para enviar correos masivos", respuesta: "B" },
+      { pregunta: "¿Qué permite hacer Gemini dentro de Colab?", A: "Generar código a partir de instrucciones en lenguaje natural", B: "Reemplazar automáticamente todos los datos", C: "Crear bases de datos oficiales", D: "Cambiar los resultados sin revisión", respuesta: "A" },
+      { pregunta: "¿Qué tipo de datos se analizaron durante la clase práctica?", A: "Datos empresariales y financieros", B: "Datos meteorológicos", C: "Datos deportivos", D: "Datos de redes sociales", respuesta: "A" },
+      { pregunta: "¿Qué mide el indicador CR4?", A: "La suma de participación de las cuatro empresas más grandes", B: "El número total de trabajadores", C: "El promedio de salarios", D: "La cantidad de archivos cargados", respuesta: "A" },
+      { pregunta: "¿Qué mide el índice HHI?", A: "El nivel de concentración de un mercado", B: "La liquidez de una empresa", C: "El número de empleados por sector", D: "La edad promedio de las empresas", respuesta: "A" },
+      { pregunta: "¿Por qué es importante revisar los resultados generados por IA?", A: "Porque la IA siempre reemplaza al especialista", B: "Porque se necesita criterio técnico para interpretar los resultados", C: "Porque la IA no puede ayudar con datos", D: "Porque los gráficos no sirven para analizar mercados", respuesta: "B" },
+      { pregunta: "¿Para qué puede servir NotebookLM?", A: "Para organizar fuentes y consultar documentos cargados por el usuario", B: "Para calcular automáticamente impuestos", C: "Para eliminar la necesidad de leer documentos", D: "Para crear empresas nuevas", respuesta: "A" },
+      { pregunta: "¿Cuál es una buena práctica al usar herramientas de IA con documentos institucionales?", A: "Revisar fuentes, permisos y privacidad antes de compartir información", B: "Subir cualquier documento sin verificarlo", C: "Compartir todos los archivos públicamente", D: "Borrar cuadernos sin revisar su contenido", respuesta: "A" },
+      { pregunta: "¿Qué es Claude?", A: "Un asistente de inteligencia artificial desarrollado por Anthropic", B: "Un programa de hojas de cálculo", C: "Un indicador financiero", D: "Una base de datos empresarial", respuesta: "A" },
+      { pregunta: "¿En qué tareas básicas puede ayudar Claude?", A: "Resumir documentos, redactar textos y explicar conceptos", B: "Garantizar resultados sin revisión humana", C: "Sustituir todas las decisiones técnicas", D: "Crear datos oficiales automáticamente", respuesta: "A" }
+    ]
   };
 }
 function defaultSlides() {
@@ -1548,21 +1559,15 @@ function migrateState() {
   const tsActual = JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"activo","E4":"pendiente"}');
   const pqRaw    = localStorage.getItem('ceg_pregs');
   const defPQ = defaultPreguntas();
-  if (tsActual.E1 === 'activo' || tsActual.E2 === 'activo') {
-    const pq = pqRaw ? JSON.parse(pqRaw) : {E1:[],E2:[],E3:[],E4:[]};
-    let pqChanged = false;
-    const esDemo = pq.E1 && pq.E1.length > 0 && pq.E1[0].pregunta.startsWith('Pregunta de evaluación');
-    if (tsActual.E1 === 'activo' && (!pq.E1 || pq.E1.length < N_PREGS || esDemo)) {
-      pq.E1 = defPQ.E1; pqChanged = true;
+  const pq = pqRaw ? JSON.parse(pqRaw) : {E1:[],E2:[],E3:[],E4:[]};
+  let pqChanged = false;
+  const esDemo = pq.E1 && pq.E1.length > 0 && pq.E1[0].pregunta.startsWith('Pregunta de evaluación');
+  TESTS.forEach(t => {
+    if (defPQ[t] && defPQ[t].length >= N_PREGS && (!pq[t] || pq[t].length < N_PREGS || (t === 'E1' && esDemo))) {
+      pq[t] = defPQ[t]; pqChanged = true;
     }
-    if (tsActual.E2 === 'activo' && (!pq.E2 || pq.E2.length < N_PREGS)) {
-      pq.E2 = defPQ.E2; pqChanged = true;
-    }
-    if (tsActual.E3 === 'activo' && (!pq.E3 || pq.E3.length < N_PREGS)) {
-      pq.E3 = defPQ.E3; pqChanged = true;
-    }
-    if (pqChanged) localStorage.setItem('ceg_pregs', JSON.stringify(pq));
-  }
+  });
+  if (pqChanged) localStorage.setItem('ceg_pregs', JSON.stringify(pq));
   const slRaw = localStorage.getItem('ceg_slides');
   const sl = slRaw ? JSON.parse(slRaw) : null;
   const defSl = defaultSlides();
