@@ -279,7 +279,6 @@
 <header class="header">
   <div class="header-info">
     <h1>Programa de Formación en Competencia Económica e IA</h1>
-    <p>Convenio SCE-CEG-CM-NAC-2024-10 &nbsp;·&nbsp; 26 mayo – 23 junio 2026</p>
   </div>
 </header>
 
@@ -851,7 +850,6 @@ function renderPortal() {
         </div>
         <div class="tc-body">
           <div class="tc-name">${TEST_NOMBRE[t]}</div>
-          <div class="tc-sub">📅 ${TEST_FECHA[t]}</div>
           <div class="tc-sub">📝 10 preguntas &nbsp;·&nbsp; ⏱ 60 minutos</div>
           <span class="badge ${badge}">${badgeTxt}</span>
         </div>
@@ -1555,8 +1553,10 @@ function migrateState() {
     if (ts.E2 === 'pendiente') { ts.E2 = 'activo'; changed = true; }
     if (ts.E3 === 'pendiente') { ts.E3 = 'activo'; changed = true; }
     if (ts.E4 === 'pendiente') { ts.E4 = 'activo'; changed = true; }
+    if (!localStorage.getItem('ceg_e1_reopen_v1') && ts.E1 !== 'activo') { ts.E1 = 'activo'; changed = true; }
     if (changed) localStorage.setItem('ceg_tstate', JSON.stringify(ts));
   }
+  localStorage.setItem('ceg_e1_reopen_v1', '1');
   const tsActual = JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"activo","E4":"activo"}');
   const pqRaw    = localStorage.getItem('ceg_pregs');
   const defPQ = defaultPreguntas();
