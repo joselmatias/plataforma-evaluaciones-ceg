@@ -762,7 +762,7 @@ function cargar() {
   return {
     participantes: JSON.parse(localStorage.getItem('ceg_part') || '[]'),
     preguntas:     storedPregs ? JSON.parse(storedPregs) : defaultPreguntas(),
-    tests_estado:  JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"cerrado","E2":"activo","E3":"cerrado","E4":"cerrado"}'),
+    tests_estado:  JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"activo","E4":"activo"}'),
     resultados:    JSON.parse(localStorage.getItem('ceg_res') || '[]'),
     asistencia:    JSON.parse(localStorage.getItem('ceg_asist') || '{}'),
     proyectos:     JSON.parse(localStorage.getItem('ceg_proy') || '{}'),
@@ -1561,11 +1561,16 @@ function migrateState() {
       ts.E1 = 'cerrado'; ts.E2 = 'activo'; ts.E3 = 'cerrado'; ts.E4 = 'cerrado';
       changed = true;
     }
+    if (!localStorage.getItem('ceg_abrir_todos_v1')) {
+      ts.E1 = 'activo'; ts.E2 = 'activo'; ts.E3 = 'activo'; ts.E4 = 'activo';
+      changed = true;
+    }
     if (changed) localStorage.setItem('ceg_tstate', JSON.stringify(ts));
   }
   localStorage.setItem('ceg_solo_e1_v1', '1');
   localStorage.setItem('ceg_activar_e2_v1', '1');
-  const tsActual = JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"cerrado","E2":"activo","E3":"cerrado","E4":"cerrado"}');
+  localStorage.setItem('ceg_abrir_todos_v1', '1');
+  const tsActual = JSON.parse(localStorage.getItem('ceg_tstate') || '{"E1":"activo","E2":"activo","E3":"activo","E4":"activo"}');
   const pqRaw    = localStorage.getItem('ceg_pregs');
   const defPQ = defaultPreguntas();
   const pq = pqRaw ? JSON.parse(pqRaw) : {E1:[],E2:[],E3:[],E4:[]};
